@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-function App() {
+export function LandingPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-6">
       <div className="flex items-center gap-3">
@@ -18,6 +18,9 @@ function App() {
         </span>
         <h1 className="text-4xl font-bold">Manda meu Rango</h1>
       </div>
+      <p className="text-muted-foreground max-w-md text-center">
+        Cardápio digital e gestão de pedidos para o seu restaurante.
+      </p>
 
       <Card className="w-full max-w-sm rounded-3xl shadow-lg">
         <CardHeader>
@@ -41,5 +44,3 @@ function App() {
     </main>
   )
 }
-
-export default App

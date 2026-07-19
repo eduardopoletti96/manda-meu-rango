@@ -28,7 +28,7 @@ Conectar repo à Vercel, configurar variáveis de ambiente e preview por PR.
 **Aceite:** URL de produção acessível com a página inicial.
 **Commit:** `chore(deploy): configura deploy contínuo na Vercel`
 
-### [ ] 0.5 — Estrutura de pastas e roteamento base (P)
+### [x] 0.5 — Estrutura de pastas e roteamento base (P)
 Criar a árvore de pastas do documento base, instalar React Router com rotas placeholder e layouts (público, loja, admin).
 **Aceite:** navegação entre `/`, `/:slug` e `/admin` funciona.
 **Commit:** `feat(app): define estrutura de pastas e roteamento base`
