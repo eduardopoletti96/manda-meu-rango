@@ -13,7 +13,7 @@ Criar repo no GitHub, iniciar Vite + React + TypeScript, configurar ESLint, Pret
 **Aceite:** `npm run dev` sobe a aplicação; lint passa sem erros.
 **Commit:** `chore(setup): inicializa projeto React + TypeScript com Vite`
 
-### [ ] 0.2 — Configurar Tailwind, tokens de design e shadcn/ui (P)
+### [x] 0.2 — Configurar Tailwind, tokens de design e shadcn/ui (P)
 Instalar Tailwind, aplicar a paleta do documento base como CSS variables, configurar fontes e raios arredondados, instalar shadcn/ui.
 **Aceite:** página de exemplo renderiza botão e card com o estilo do projeto.
 **Commit:** `feat(ui): configura Tailwind, tokens de design e shadcn/ui`
