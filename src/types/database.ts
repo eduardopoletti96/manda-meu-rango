@@ -90,6 +90,86 @@ export type Database = {
           },
         ]
       }
+      customer_addresses: {
+        Row: {
+          city: string | null
+          complement: string | null
+          created_at: string
+          customer_id: string
+          district: string | null
+          id: string
+          is_default: boolean
+          label: string | null
+          number: string | null
+          reference: string | null
+          state: string | null
+          street: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          city?: string | null
+          complement?: string | null
+          created_at?: string
+          customer_id: string
+          district?: string | null
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          number?: string | null
+          reference?: string | null
+          state?: string | null
+          street?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          city?: string | null
+          complement?: string | null
+          created_at?: string
+          customer_id?: string
+          district?: string | null
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          number?: string | null
+          reference?: string | null
+          state?: string | null
+          street?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_addresses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          phone_verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          phone_verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          phone_verified_at?: string | null
+        }
+        Relationships: []
+      }
       menu_items: {
         Row: {
           category_id: string
@@ -146,6 +226,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      phone_verifications: {
+        Row: {
+          attempts: number
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          token_hash: string
+        }
+        Insert: {
+          attempts?: number
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          phone: string
+          token_hash: string
+        }
+        Update: {
+          attempts?: number
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          token_hash?: string
+        }
+        Relationships: []
       }
       restaurant_users: {
         Row: {

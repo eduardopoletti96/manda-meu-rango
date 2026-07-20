@@ -47,7 +47,7 @@ Tabelas `categories` e `menu_items` com ordenação e flags de disponibilidade.
 **Aceite:** FKs e índices por `restaurant_id` criados.
 **Commit:** `feat(db): cria tabelas de categorias e itens do cardápio`
 
-### [ ] 1.3 — Migration: clientes e endereços (P)
+### [x] 1.3 — Migration: clientes e endereços (P)
 Tabelas `customers`, `customer_addresses`, `phone_verifications`.
 **Aceite:** telefone único em formato E.164; token com expiração.
 **Commit:** `feat(db): cria tabelas de clientes, endereços e verificação de telefone`
