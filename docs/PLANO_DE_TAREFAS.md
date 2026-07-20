@@ -42,7 +42,7 @@ Tabelas `restaurants`, `restaurant_users`, `business_hours` + enums de papel.
 **Aceite:** migration aplica e reverte sem erro; slug é único.
 **Commit:** `feat(db): cria tabelas de restaurantes, usuários e horários`
 
-### [ ] 1.2 — Migration: cardápio (P)
+### [x] 1.2 — Migration: cardápio (P)
 Tabelas `categories` e `menu_items` com ordenação e flags de disponibilidade.
 **Aceite:** FKs e índices por `restaurant_id` criados.
 **Commit:** `feat(db): cria tabelas de categorias e itens do cardápio`
