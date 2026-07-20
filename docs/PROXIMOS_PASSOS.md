@@ -1,74 +1,101 @@
 # Manda meu Rango — Próximos Passos
 
-> Atualizado em 19/07/2026. Complementa o [PLANO_DE_TAREFAS.md](PLANO_DE_TAREFAS.md): este documento registra **onde paramos**, **o que depende de você** e **a ordem de retomada**.
+> Atualizado em 20/07/2026. Complementa o [PLANO_DE_TAREFAS.md](PLANO_DE_TAREFAS.md): este documento registra **onde paramos**, **o que depende de você** e **a ordem de retomada**.
 
 ---
 
 ## 1. Estado atual
 
-**Fase 0 (Fundação) concluída** nas partes que não dependem de contas externas — 5 commits na branch `main`:
+**Fase 0 concluída**, exceto a 0.4 (Vercel). **Fase 1 escrita e aplicada** no projeto Supabase hospedado.
+
+### Fase 0
 
 - ✅ **0.1** — Vite + React 19 + TypeScript, ESLint, Prettier, `.gitignore`, `.env.example`
-- ✅ **0.2** — Tailwind 4 + tokens da identidade visual + shadcn/ui (button, card, input, label) + fontes Baloo 2 / Nunito Sans
-- ⚠️ **0.3** — Client Supabase pronto (`src/lib/supabase.ts`, script `npm run db:types`); **falta criar o projeto no Supabase e validar a conexão**
-- ⚠️ **0.4** — `vercel.json` com rewrites de SPA pronto; **falta repo no GitHub + conexão com a Vercel**
-- ✅ **0.5** — Estrutura de pastas completa e todas as rotas do documento base como placeholders (layouts público, loja e admin)
+- ✅ **0.2** — Tailwind 4 + tokens da identidade visual + shadcn/ui + fontes Baloo 2 / Nunito Sans
+- ✅ **0.3** — Projeto Supabase criado e linkado; conexão validada; `npm run db:types` gerando tipos do schema real
+- ⚠️ **0.4** — `vercel.json` pronto; **falta repo no GitHub + conexão com a Vercel**
+- ✅ **0.5** — Estrutura de pastas e rotas placeholder
 
-`npm run dev`, `npm run lint` e `npm run build` passam.
+### Fase 1
+
+Todas as migrations foram aplicadas no banco remoto e verificadas com testes contra o projeto real:
+
+- ✅ **1.1** — `restaurants`, `restaurant_users`, `business_hours` + enum de papel
+- ✅ **1.2** — `categories`, `menu_items`, com trigger que impede o `restaurant_id` denormalizado de divergir da categoria
+- ✅ **1.3** — `customers`, `customer_addresses`, `phone_verifications`
+- ✅ **1.4** — `orders`, `order_items`, `order_status_history`, `reviews`, `notification_logs`; numeração sequencial por restaurante validada com 10 pedidos concorrentes
+- ⚠️ **1.5** — RLS aplicada; **metade do aceite verificada** (ver abaixo)
+- ⚠️ **1.6** — Buckets criados e `seed.sql` escrito; **nada disso foi executado ainda**
+
+`npm run lint` e `npm run build` passam. O único warning do lint é pré-existente, do `button.tsx` do shadcn.
 
 ---
 
-## 2. Ações que dependem de você (checklist)
+## 2. Bloqueio atual
 
-### A. Supabase (desbloqueia as Fases 1 em diante)
+A 1.5 e a 1.6 travaram no mesmo ponto: **não consigo criar usuários de teste no Auth**.
 
-- [ ] Criar conta/projeto em [supabase.com](https://supabase.com) (plano gratuito serve; região `sa-east-1` — São Paulo — recomendada)
-- [ ] Copiar `.env.example` para `.env` e preencher (dashboard → **Settings → API**):
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY`
-- [ ] No terminal do Claude Code, autenticar o CLI e linkar o projeto:
-  ```
-  ! npx supabase login
-  ! npx supabase link --project-ref <ref-do-projeto>
-  ```
-  O `<ref>` aparece na URL do dashboard: `https://supabase.com/dashboard/project/<ref>`.
+O que já está provado na 1.5, com a anon key: escrita anônima é negada em todas as tabelas, leitura de clientes, endereços, tokens, pedidos, itens, equipe e logs retorna vazio, e a leitura pública da vitrine continua funcionando.
 
-> Sua máquina não tem Docker, então não usamos Supabase local — as migrations serão aplicadas direto no projeto hospedado via `supabase db push`.
+O que **falta** provar: que um restaurante autenticado não lê dados de outro, e que o cliente só vê os próprios pedidos. Isso exige dois usuários reais no Supabase Auth.
+
+### Como destravar
+
+No dashboard: **Authentication → Sign In / Providers → Email → desmarcar "Confirm email" → Save**.
+
+Sem envio de e-mail, some o rate limit e o `signUp` devolve sessão na hora. Você vai precisar disso na Fase 2 de qualquer forma, para desenvolver o login.
+
+Feito isso, eu:
+
+1. Crio dois usuários, monto um restaurante para cada e provo o isolamento entre tenants — fecha a **1.5**
+2. Rodo o `seed.sql` e testo upload nos buckets — fecha a **1.6**
+
+> Alternativa: colar `supabase/seed.sql` no SQL Editor do dashboard já popula a Cantina da Nona, o que adianta a 1.6 sem depender do Auth.
+
+---
+
+## 3. Ações que dependem de você
+
+### A. Auth (desbloqueia 1.5 e 1.6 — **é o bloqueio de agora**)
+
+- [ ] Desativar "Confirm email" em Authentication → Sign In / Providers → Email
 
 ### B. GitHub (desbloqueia a 0.4 e o fluxo de PRs)
 
 - [ ] Criar o repositório `manda-meu-rango` no GitHub (pode ser privado)
-- [ ] Se tiver o GitHub CLI: `! gh auth login` — daí eu mesmo crio o repo e faço o push. Senão, me passe a URL do repo criado que eu configuro o remote e subo a `main`.
+- [ ] O GitHub CLI não está instalado nesta máquina. Instale (`winget install GitHub.cli`) e rode `gh auth login` num terminal comum, ou me passe a URL do repo que eu configuro o remote e subo a `main`.
 
 ### C. Vercel (conclui a 0.4)
 
-- [ ] Criar conta em [vercel.com](https://vercel.com) e importar o repo do GitHub (framework: **Vite**)
-- [ ] Adicionar as variáveis de ambiente do front no projeto Vercel: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_APP_BASE_URL` (a URL de produção) — `VITE_STRIPE_PUBLISHABLE_KEY` pode esperar a Fase 5
+- [ ] Criar conta em [vercel.com](https://vercel.com) e importar o repo (framework: **Vite**)
+- [ ] Variáveis no projeto Vercel: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_APP_BASE_URL`
 - [ ] Confirmar que o preview por PR está habilitado (padrão da Vercel)
 
-### D. Mais adiante (não bloqueia agora — avisarei quando chegar a hora)
+### D. Mais adiante (avisarei quando chegar a hora)
 
-- [ ] **Fase 4** — Conta na Cloud API do WhatsApp (Meta) ou provedor equivalente: `WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`
-- [ ] **Fase 5** — Conta Stripe (modo teste): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `VITE_STRIPE_PUBLISHABLE_KEY`
-- [ ] **Fase 7** — Conta Resend: `RESEND_API_KEY`
-- [ ] **Fase 9** — Conta Sentry (observabilidade) e domínio customizado
+- [ ] **Fase 4** — Cloud API do WhatsApp (Meta): `WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`
+- [ ] **Fase 5** — Stripe em modo teste: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `VITE_STRIPE_PUBLISHABLE_KEY`
+- [ ] **Fase 7** — Resend: `RESEND_API_KEY`
+- [ ] **Fase 9** — Sentry e domínio customizado
 
-Os segredos de Edge Functions são configurados via `npx supabase secrets set` — nunca no `.env` do front.
+Segredos de Edge Functions vão em `npx supabase secrets set` — nunca no `.env` do front.
 
 ---
 
-## 3. Ordem de retomada (o que farei quando você voltar)
+## 4. Decisões tomadas nesta etapa
 
-Com **Supabase linkado** (item A), sigo direto pelo plano:
+- **Identidade do cliente na RLS.** O cliente não tem conta no Supabase Auth. As políticas leem o claim `customer_id` do JWT, que a Edge Function de verificação por WhatsApp passará a emitir na Fase 4. Hoje nenhum token do cliente carrega o claim, então o acesso é negado por padrão e tudo passa por Edge Function — sem precisar reescrever as políticas depois.
+- **Validação de transição de status no banco.** Além do histórico exigido pela 1.4, as transições da seção 5.3 são validadas por trigger: status terminal é imutável e saltos são rejeitados. Impede que um bug no painel deixe o pedido num estado impossível.
+- **`restaurant_id` denormalizado em `menu_items`.** Mantido conforme o documento base para simplificar a RLS, mas com trigger garantindo a coerência com a categoria — sem isso, um update descuidado vazaria itens entre restaurantes.
 
-1. **Concluir 0.3** — validar conexão com query de teste e marcar a tarefa
-2. **Fase 1 completa** (6 tarefas): migrations de restaurantes/usuários/horários, cardápio, clientes/endereços/verificação de telefone, pedidos/histórico/avaliações, políticas RLS multi-tenant e buckets de storage + seed
-3. **Fase 2** (painel do restaurante): login, onboarding com slug, layout do painel, perfil, CRUD de categorias e itens
-4. **Fase 3** (vitrine do cliente): resolução por slug, grid de categorias, listagem de itens, carrinho (Zustand) e tela do carrinho
+---
 
-Com **GitHub + Vercel** (itens B e C), concluo a **0.4** em paralelo (push, deploy, validação da URL de produção).
+## 5. Ordem de retomada
 
-As Fases 4–9 (WhatsApp, Stripe, kanban realtime, e-mails, relatórios, refinamento) seguem a ordem do [PLANO_DE_TAREFAS.md](PLANO_DE_TAREFAS.md); os marcos continuam valendo:
+1. Fechar **1.5** e **1.6** assim que o Auth destravar
+2. **Fase 2** (painel do restaurante): login, onboarding com slug, layout, perfil, CRUD de categorias e itens
+3. **Fase 3** (vitrine do cliente): resolução por slug, grid de categorias, listagem de itens, carrinho
+4. **0.4** em paralelo, assim que GitHub e Vercel existirem
 
 | Marco | Significado |
 |---|---|
@@ -79,6 +106,6 @@ As Fases 4–9 (WhatsApp, Stripe, kanban realtime, e-mails, relatórios, refinam
 
 ---
 
-## 4. Resumo de progresso
+## 6. Resumo de progresso
 
-**5 de 50 tarefas** entregues (Fase 0, com 0.3 e 0.4 aguardando apenas as vinculações acima). Nenhum retrabalho pendente; é seguro retomar de onde paramos.
+**9 de 50 tarefas** entregues; 2 (1.5 e 1.6) aguardando apenas a verificação final. Nenhum retrabalho pendente.
