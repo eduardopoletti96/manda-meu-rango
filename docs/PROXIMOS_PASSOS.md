@@ -76,10 +76,29 @@ Antes de ir para produção (Fase 9), reavaliar se a confirmação de e-mail dev
 
 ---
 
-## 5. Ordem de retomada
+## 5. Débito técnico a limpar
+
+- **Página temporária `/status`** (`src/pages/StatusPage.tsx` + rota em `src/app/router.tsx`). Foi criada para conferir no navegador que o front lê o seed pelo Supabase. **Remover na Fase 3**, quando a vitrine real (`/:slug`) mostrar o cardápio de verdade. Os dois pontos a apagar estão marcados com o comentário `TEMPORÁRIO`.
+- **Aviso de chunk > 500 kB no build.** O bundle único já passa de 500 kB. Não é bloqueante agora; endereçar com code-splitting por rota quando a Fase 2/3 crescer o app.
+
+---
+
+## 6. Como rodar e testar localmente
+
+`npm run dev` sobe em `http://localhost:5173`. O que é testável hoje (o front ainda é placeholder; telas reais vêm nas Fases 2 e 3):
+
+- **`/status`** — lê a Cantina da Nona ao vivo do Supabase e lista categorias e itens. "Conectado ✓" confirma `.env` + client + RLS de leitura pública de ponta a ponta.
+- **`/`, `/admin`, `/qualquer-slug`** — renderizam marcadores "Em construção"; validam roteamento e layouts.
+- **Dashboard do Supabase** — Table Editor / SQL Editor para inspecionar tabelas e seed. Repopular com `supabase/seed.sql` (idempotente).
+
+Detalhes no [README](../README.md#estado-atual-e-como-testar).
+
+---
+
+## 7. Ordem de retomada
 
 1. **Fase 2** (painel do restaurante): login, onboarding com slug, layout, perfil, CRUD de categorias e itens
-2. **Fase 3** (vitrine do cliente): resolução por slug, grid de categorias, listagem de itens, carrinho
+2. **Fase 3** (vitrine do cliente): resolução por slug, grid de categorias, listagem de itens, carrinho — **remover a `/status` aqui**
 3. **0.4** finaliza assim que a Vercel estiver conectada
 
 | Marco | Significado |
@@ -91,6 +110,6 @@ Antes de ir para produção (Fase 9), reavaliar se a confirmação de e-mail dev
 
 ---
 
-## 6. Resumo de progresso
+## 8. Resumo de progresso
 
-**11 de 50 tarefas** entregues (toda a Fase 0 exceto a Vercel + toda a Fase 1). Próximo passo natural: Fase 2. Nenhum retrabalho pendente.
+**11 de 50 tarefas** entregues (toda a Fase 0 exceto a Vercel + toda a Fase 1). Próximo passo natural: Fase 2. Nenhum retrabalho pendente, salvo a remoção da `/status` na Fase 3.
