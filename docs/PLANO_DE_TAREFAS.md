@@ -52,7 +52,7 @@ Tabelas `customers`, `customer_addresses`, `phone_verifications`.
 **Aceite:** telefone único em formato E.164; token com expiração.
 **Commit:** `feat(db): cria tabelas de clientes, endereços e verificação de telefone`
 
-### [ ] 1.4 — Migration: pedidos (M)
+### [x] 1.4 — Migration: pedidos (M)
 Tabelas `orders`, `order_items`, `order_status_history`, `reviews`, `notification_logs` + enums de status.
 **Aceite:** numeração sequencial por restaurante funciona; trigger de histórico grava mudanças de status.
 **Commit:** `feat(db): cria tabelas de pedidos, itens, histórico e avaliações`
