@@ -18,7 +18,7 @@ Instalar Tailwind, aplicar a paleta do documento base como CSS variables, config
 **Aceite:** página de exemplo renderiza botão e card com o estilo do projeto.
 **Commit:** `feat(ui): configura Tailwind, tokens de design e shadcn/ui`
 
-### [ ] 0.3 — Criar projeto Supabase e client (P)
+### [x] 0.3 — Criar projeto Supabase e client (P)
 Criar projeto, configurar `src/lib/supabase.ts`, variáveis de ambiente e script de geração de tipos.
 **Aceite:** conexão validada com uma query de teste.
 **Commit:** `chore(supabase): configura projeto e client do Supabase`
