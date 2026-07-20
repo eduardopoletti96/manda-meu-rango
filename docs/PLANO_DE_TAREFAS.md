@@ -37,7 +37,7 @@ Criar a árvore de pastas do documento base, instalar React Router com rotas pla
 
 ## Fase 1 — Banco de dados
 
-### [ ] 1.1 — Migration: restaurantes e usuários (M)
+### [x] 1.1 — Migration: restaurantes e usuários (M)
 Tabelas `restaurants`, `restaurant_users`, `business_hours` + enums de papel.
 **Aceite:** migration aplica e reverte sem erro; slug é único.
 **Commit:** `feat(db): cria tabelas de restaurantes, usuários e horários`

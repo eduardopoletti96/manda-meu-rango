@@ -14,7 +14,160 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      business_hours: {
+        Row: {
+          closes_at: string | null
+          id: string
+          is_closed: boolean
+          opens_at: string | null
+          restaurant_id: string
+          weekday: number
+        }
+        Insert: {
+          closes_at?: string | null
+          id?: string
+          is_closed?: boolean
+          opens_at?: string | null
+          restaurant_id: string
+          weekday: number
+        }
+        Update: {
+          closes_at?: string | null
+          id?: string
+          is_closed?: boolean
+          opens_at?: string | null
+          restaurant_id?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_hours_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_users: {
+        Row: {
+          created_at: string
+          id: string
+          restaurant_id: string
+          role: Database["public"]["Enums"]["restaurant_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          restaurant_id: string
+          role?: Database["public"]["Enums"]["restaurant_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          restaurant_id?: string
+          role?: Database["public"]["Enums"]["restaurant_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurants: {
+        Row: {
+          avg_prep_time_minutes: number
+          city: string | null
+          complement: string | null
+          cover_url: string | null
+          created_at: string
+          delivery_enabled: boolean
+          delivery_fee: number
+          description: string | null
+          district: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          min_order_value: number
+          name: string
+          number: string | null
+          phone: string | null
+          pickup_enabled: boolean
+          slug: string
+          state: string | null
+          street: string | null
+          stripe_account_id: string | null
+          updated_at: string
+          zip_code: string | null
+        }
+        Insert: {
+          avg_prep_time_minutes?: number
+          city?: string | null
+          complement?: string | null
+          cover_url?: string | null
+          created_at?: string
+          delivery_enabled?: boolean
+          delivery_fee?: number
+          description?: string | null
+          district?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          min_order_value?: number
+          name: string
+          number?: string | null
+          phone?: string | null
+          pickup_enabled?: boolean
+          slug: string
+          state?: string | null
+          street?: string | null
+          stripe_account_id?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Update: {
+          avg_prep_time_minutes?: number
+          city?: string | null
+          complement?: string | null
+          cover_url?: string | null
+          created_at?: string
+          delivery_enabled?: boolean
+          delivery_fee?: number
+          description?: string | null
+          district?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          min_order_value?: number
+          name?: string
+          number?: string | null
+          phone?: string | null
+          pickup_enabled?: boolean
+          slug?: string
+          state?: string | null
+          street?: string | null
+          stripe_account_id?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +176,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      restaurant_role: "owner" | "manager" | "staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +303,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      restaurant_role: ["owner", "manager", "staff"],
+    },
   },
 } as const
