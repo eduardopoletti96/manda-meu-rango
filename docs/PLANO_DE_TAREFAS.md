@@ -57,12 +57,12 @@ Tabelas `orders`, `order_items`, `order_status_history`, `reviews`, `notificatio
 **Aceite:** numeração sequencial por restaurante funciona; trigger de histórico grava mudanças de status.
 **Commit:** `feat(db): cria tabelas de pedidos, itens, histórico e avaliações`
 
-### [ ] 1.5 — Políticas RLS (M)
+### [x] 1.5 — Políticas RLS (M)
 Habilitar RLS em todas as tabelas e escrever as políticas conforme seção 5.4 do documento base.
 **Aceite:** testes manuais confirmam que um restaurante não lê dados de outro e que cliente só vê os próprios pedidos.
 **Commit:** `feat(db): aplica políticas de RLS multi-tenant`
 
-### [ ] 1.6 — Buckets de Storage e seed (P)
+### [x] 1.6 — Buckets de Storage e seed (P)
 Buckets `logos`, `covers`, `categories`, `items` com políticas; script `seed.sql` com um restaurante fictício completo.
 **Aceite:** upload público de leitura e escrita restrita; seed popula dados de teste.
 **Commit:** `feat(db): configura buckets de storage e dados de seed`

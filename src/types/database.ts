@@ -638,7 +638,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_customer_id: { Args: never; Returns: string }
+      is_restaurant_admin: {
+        Args: { target_restaurant_id: string }
+        Returns: boolean
+      }
+      is_restaurant_member: {
+        Args: { target_restaurant_id: string }
+        Returns: boolean
+      }
+      storage_object_restaurant_id: {
+        Args: { object_name: string }
+        Returns: string
+      }
     }
     Enums: {
       fulfillment_type: "pickup" | "delivery"
