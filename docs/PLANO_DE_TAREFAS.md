@@ -71,32 +71,32 @@ Buckets `logos`, `covers`, `categories`, `items` com políticas; script `seed.sq
 
 ## Fase 2 — Painel do restaurante
 
-### [ ] 2.1 — Login por e-mail e senha (M)
+### [x] 2.1 — Login por e-mail e senha (M)
 Tela `/admin/login`, Supabase Auth, rotas protegidas, logout, recuperação de senha.
 **Aceite:** usuário não autenticado é redirecionado; sessão persiste no refresh.
 **Commit:** `feat(auth): implementa login e proteção de rotas do painel`
 
-### [ ] 2.2 — Cadastro de restaurante e onboarding (M)
+### [x] 2.2 — Cadastro de restaurante e onboarding (M)
 Fluxo de criação de conta com definição de slug (com validação de disponibilidade) e dados básicos.
 **Aceite:** ao concluir, o usuário vira `owner` do restaurante criado.
 **Commit:** `feat(admin): cria fluxo de cadastro e onboarding de restaurante`
 
-### [ ] 2.3 — Layout do painel e dashboard (P)
+### [x] 2.3 — Layout do painel e dashboard (P)
 Sidebar, header com nome do restaurante, cards de resumo (pedidos hoje, faturamento, ticket médio).
 **Aceite:** layout responsivo; navegação entre todas as seções.
 **Commit:** `feat(admin): implementa layout do painel e dashboard inicial`
 
-### [ ] 2.4 — Perfil do restaurante (M)
+### [x] 2.4 — Perfil do restaurante (M)
 Edição de dados, contato, endereço, taxa de entrega, pedido mínimo, tempo médio de preparo, horários e uploads de logo e capa.
 **Aceite:** alterações refletem imediatamente na página pública.
 **Commit:** `feat(admin): implementa edição do perfil e identidade visual do restaurante`
 
-### [ ] 2.5 — CRUD de categorias (M)
+### [x] 2.5 — CRUD de categorias (M)
 Listagem, criação, edição, exclusão, upload de imagem, ativar/desativar e reordenação por drag-and-drop.
 **Aceite:** ordem persistida; exclusão bloqueada ou em cascata com aviso quando há itens.
 **Commit:** `feat(cardapio): implementa CRUD de categorias`
 
-### [ ] 2.6 — CRUD de itens (M)
+### [x] 2.6 — CRUD de itens (M)
 Itens dentro da categoria com nome, descrição, imagem, preço, disponibilidade e ordenação.
 **Aceite:** preço validado; item marcado como indisponível não aparece para o cliente.
 **Commit:** `feat(cardapio): implementa CRUD de itens do cardápio`

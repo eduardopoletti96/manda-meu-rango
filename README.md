@@ -19,15 +19,15 @@ npm run dev            # http://localhost:5173
 
 ## Estado atual e como testar
 
-O progresso está detalhado em [docs/PROXIMOS_PASSOS.md](docs/PROXIMOS_PASSOS.md). Em resumo: **Fase 0 e Fase 1 concluídas** — projeto configurado e todo o banco de dados (schema, RLS multi-tenant, storage, seed) aplicado no Supabase. O front-end ainda são páginas placeholder; as telas reais começam na Fase 2 (painel) e Fase 3 (vitrine).
+O progresso está detalhado em [docs/PROXIMOS_PASSOS.md](docs/PROXIMOS_PASSOS.md). Em resumo: **Fases 0, 1 e 2 concluídas** — projeto configurado, banco completo (schema, RLS multi-tenant, storage, seed) e **painel do restaurante funcional**: login, cadastro com onboarding, dashboard, perfil completo e gestão do cardápio. A vitrine do cliente é a Fase 3.
 
 O que dá para testar hoje:
 
-1. **Conexão e dados de seed no navegador** — com `npm run dev` rodando, abra **http://localhost:5173/status**. É uma página temporária de diagnóstico que lê o restaurante de seed (Cantina da Nona) direto do Supabase e lista suas categorias e itens. Se aparecer "Conectado ✓" e o cardápio, então `.env`, o client e a leitura pública da RLS estão funcionando de ponta a ponta. _(Essa rota é removida na Fase 3.)_
-2. **Navegação entre rotas placeholder** — `/` (landing), `/admin` (painel) e `/qualquer-slug` (loja) renderizam marcadores "Em construção". Confirma o roteamento e os layouts.
+1. **Painel do restaurante** — com `npm run dev` rodando, abra **http://localhost:5173/admin**. Crie uma conta (`/admin/cadastro`), cadastre um restaurante no onboarding (com validação de slug ao vivo) e explore: dashboard com resumo do dia, perfil (dados, endereço, entrega/retirada, horários, logo e capa) e cardápio (categorias e itens com drag-and-drop, ativar/desativar e upload de imagens).
+2. **Conexão e dados de seed no navegador** — abra **http://localhost:5173/status**: página temporária que lê o restaurante de seed (Cantina da Nona) direto do Supabase. _(Essa rota é removida na Fase 3.)_
 3. **Dados direto no Supabase** — no dashboard do projeto, em _Table Editor_ ou _SQL Editor_, é possível inspecionar as tabelas e o seed. Para popular/repopular o restaurante fictício, rode [supabase/seed.sql](supabase/seed.sql) no SQL Editor (é idempotente).
 
-> Ainda **não** dá para ver o cardápio da Cantina em `/cantina-da-nona`: essa tela é a Fase 3. Por enquanto o cardápio de seed só aparece em `/status` ou no dashboard.
+> Ainda **não** dá para ver o cardápio em `/seu-slug`: essa tela é a Fase 3. Por enquanto o cardápio aparece no painel (`/admin/cardapio`), em `/status` ou no dashboard do Supabase.
 
 ### Banco de dados
 

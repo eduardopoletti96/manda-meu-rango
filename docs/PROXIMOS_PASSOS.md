@@ -1,51 +1,63 @@
 # Manda meu Rango — Próximos Passos
 
-> Atualizado em 20/07/2026. Complementa o [PLANO_DE_TAREFAS.md](PLANO_DE_TAREFAS.md): este documento registra **onde paramos**, **o que depende de você** e **a ordem de retomada**.
+> Atualizado em 23/07/2026. Complementa o [PLANO_DE_TAREFAS.md](PLANO_DE_TAREFAS.md): este documento registra **onde paramos**, **o que depende de você** e **a ordem de retomada**.
 
 ---
 
 ## 1. Estado atual
 
-**Fase 0 concluída**, exceto a Vercel (0.4). **Fase 1 completa e verificada** no projeto Supabase hospedado.
+**Fases 0, 1 e 2 concluídas** (exceto a Vercel, 0.4). Marco atingido: **o restaurante consegue montar o cardápio pelo painel**.
 
 ### Fase 0
 
 - ✅ **0.1** — Vite + React 19 + TypeScript, ESLint, Prettier, `.gitignore`, `.env.example`
 - ✅ **0.2** — Tailwind 4 + tokens da identidade visual + shadcn/ui + fontes Baloo 2 / Nunito Sans
-- ✅ **0.3** — Projeto Supabase criado e linkado; conexão validada; `npm run db:types` gerando tipos do schema real
-- ⚠️ **0.4** — Repo no GitHub conectado e `main` publicada ([eduardopoletti96/manda-meu-rango](https://github.com/eduardopoletti96/manda-meu-rango)); **falta a conexão com a Vercel**
+- ✅ **0.3** — Projeto Supabase criado e linkado; conexão validada; `npm run db:types`
+- ⚠️ **0.4** — Repo no GitHub conectado ([eduardopoletti96/manda-meu-rango](https://github.com/eduardopoletti96/manda-meu-rango)); **falta a conexão com a Vercel**
 - ✅ **0.5** — Estrutura de pastas e rotas placeholder
 
 ### Fase 1 — completa
 
-Todas as migrations aplicadas no banco remoto e verificadas com testes contra o projeto real (usuários autenticados de verdade, não só a anon key):
+Migrations aplicadas e verificadas no projeto hospedado (detalhes na versão anterior deste documento e no histórico do git): schema completo, RLS multi-tenant testada com usuários reais, buckets de storage e seed.
 
-- ✅ **1.1** — `restaurants`, `restaurant_users`, `business_hours` + enum de papel
-- ✅ **1.2** — `categories`, `menu_items`, com trigger que impede o `restaurant_id` denormalizado de divergir da categoria
-- ✅ **1.3** — `customers`, `customer_addresses`, `phone_verifications`
-- ✅ **1.4** — `orders`, `order_items`, `order_status_history`, `reviews`, `notification_logs`; numeração sequencial validada com 10 pedidos concorrentes
-- ✅ **1.5** — RLS multi-tenant; isolamento entre dois owners autenticados verificado (leitura, escrita e adição de membros bloqueadas entre tenants)
-- ✅ **1.6** — Buckets criados; `seed.sql` executado (Cantina da Nona); upload restrito à própria pasta e leitura pública verificados
+### Fase 2 — completa (nesta sessão, 23/07/2026)
 
-`npm run lint` e `npm run build` passam. O único warning do lint é pré-existente, do `button.tsx` do shadcn.
+Todas as tarefas foram verificadas no navegador (Chrome automatizado) e com consultas ao banco real:
 
-> **Correção de segurança nesta etapa:** o teste com dois usuários reais expôs um vazamento entre tenants na política de insert de `restaurant_users` — um forasteiro conseguia se registrar como owner de restaurante alheio, porque o `NOT EXISTS` que checava "restaurante sem membros" rodava sob RLS e enxergava a equipe do outro como vazia. Corrigido: o primeiro owner passou a ser atribuído por trigger `SECURITY DEFINER`, e a política de insert exige que quem adiciona membros já seja admin. Re-testado, isolamento total.
+- ✅ **2.1** — Login por e-mail/senha, rotas protegidas, logout e recuperação de senha (`/admin/login`, `/admin/recuperar-senha`, `/admin/redefinir-senha`). Sessão persiste no refresh; erros do Auth traduzidos para PT-BR.
+- ✅ **2.2** — Cadastro (`/admin/cadastro`) + onboarding com slug validado ao vivo (debounce + fallback na constraint unique). O trigger do banco torna o criador `owner` automaticamente (verificado).
+- ✅ **2.3** — Layout do painel (sidebar com ícones, drawer no mobile, header com seção atual e link "Ver loja") + dashboard com cards de pedidos/faturamento/ticket médio do dia.
+- ✅ **2.4** — Perfil em seções independentes: dados básicos, endereço, entrega/retirada (com trava de "pelo menos uma modalidade"), horários por dia (aceita virar a madrugada) e uploads de logo/capa para os buckets (leitura pública verificada, HTTP 200 no CDN).
+- ✅ **2.5** — CRUD de categorias com drag-and-drop (`@dnd-kit`, ordem persistida em `sort_order`), ativar/desativar, upload de imagem e exclusão com aviso de cascata ("esta categoria tem N itens…").
+- ✅ **2.6** — CRUD de itens por categoria (`/admin/cardapio/:categoriaId`): preço validado (vírgula ou ponto), disponibilidade, imagem e ordenação. Confirmado por consulta anônima: categoria inativa some para o cliente; item indisponível continua legível e **aparecerá bloqueado** na vitrine (decisão da RLS da Fase 1, alinhada ao aceite da 3.3).
+
+`npm run lint` e `npm run build` passam (o único warning do lint segue sendo o pré-existente do `button.tsx`).
 
 ---
 
 ## 2. Ações que dependem de você
 
-### A. Vercel (conclui a 0.4 — **é o único bloqueio de setup restante**)
+### A. Vercel (conclui a 0.4 — **único bloqueio de setup restante**)
 
 - [ ] Criar conta em [vercel.com](https://vercel.com) e importar o repo `manda-meu-rango` (framework: **Vite**)
 - [ ] Variáveis no projeto Vercel: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_APP_BASE_URL` (a URL de produção)
 - [ ] Confirmar que o preview por PR está habilitado (padrão da Vercel)
 
-### B. Limpeza opcional no Auth
+### B. URLs de redirecionamento no Supabase (necessário para o e-mail de recuperação de senha)
 
-- [ ] Os testes de RLS criaram alguns usuários com e-mails `mmr-*@gmail.com` e `st-*@gmail.com` no Authentication. São inofensivos (contas de teste, sem dados reais), mas você pode removê-los no dashboard → Authentication → Users se quiser deixar limpo. Não tenho a service_role, então não os apago por conta própria.
+O link "Esqueci minha senha" envia um e-mail cujo destino precisa estar na lista de URLs permitidas. No dashboard → **Authentication → URL Configuration**:
 
-### C. Mais adiante (avisarei quando chegar a hora)
+- [ ] **Site URL**: `http://localhost:5173` (trocar pela URL da Vercel quando existir)
+- [ ] **Redirect URLs**: adicionar `http://localhost:5173/**` (e depois `https://<seu-dominio>/**`)
+
+Sem isso, o e-mail chega mas o link cai em URL não autorizada. Lembrete: o SMTP embutido do Supabase tem limite baixo de e-mails/hora — suficiente para testes pontuais; o Resend entra na Fase 7.
+
+### C. Limpeza opcional de dados de teste
+
+- [ ] **Usuários no Authentication**: além dos `mmr-*`/`st-*` antigos, esta sessão criou `mmr-auth-<timestamp>@gmail.com`, `mmr-ui-test@gmail.com` e `mmr-onboard-test@gmail.com` (senha de teste: `RangoTeste!123`). Inofensivos; remova no dashboard se quiser.
+- [ ] **Restaurante de teste "Pizzaria do Zé"** (slug `pizzaria-do-ze`, dono `mmr-onboard-test`): criado pelo teste do onboarding, com categorias/itens/logo de exemplo. **Sugestão: manter até o fim da Fase 3** — é útil para testar a vitrine — e apagar depois (Table Editor → `restaurants`; o cascade limpa o resto).
+
+### D. Mais adiante (avisarei quando chegar a hora)
 
 - [ ] **Fase 4** — Cloud API do WhatsApp (Meta): `WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`
 - [ ] **Fase 5** — Stripe em modo teste: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `VITE_STRIPE_PUBLISHABLE_KEY`
@@ -58,38 +70,42 @@ Segredos de Edge Functions vão em `npx supabase secrets set` — nunca no `.env
 
 ## 3. Configurações do Supabase a lembrar
 
-Durante o desenvolvimento, foram ajustados no dashboard (Authentication → Sign In / Providers → Email):
+Ajustes feitos no dashboard (Authentication → Sign In / Providers → Email):
 
-- **"Confirm email"** desligado — permite login sem clicar em link de e-mail durante o desenvolvimento.
-- **"Allow new users to sign up"** ligado — necessário para o cadastro do painel na Fase 2.
+- **"Confirm email" desligado** — login sem clicar em link durante o desenvolvimento. O `SignUpPage` já trata o caso de a confirmação voltar a ser exigida (mostra aviso em vez de seguir para o onboarding).
+- **"Allow new users to sign up" ligado** — necessário para o cadastro do painel.
 
-Antes de ir para produção (Fase 9), reavaliar se a confirmação de e-mail deve voltar a ser exigida para os donos de restaurante.
+Antes de produção (Fase 9), reavaliar a confirmação de e-mail para donos de restaurante.
 
 ---
 
 ## 4. Decisões de arquitetura em vigor
 
-- **Identidade do cliente na RLS.** O cliente não tem conta no Supabase Auth. As políticas leem o claim `customer_id` do JWT, que a Edge Function de verificação por WhatsApp passará a emitir na Fase 4. Hoje nenhum token do cliente carrega o claim, então o acesso é negado por padrão e tudo passa por Edge Function.
-- **Owner atribuído por trigger.** Ao criar um restaurante, o criador vira `owner` automaticamente (trigger `assign_restaurant_owner`). O fluxo de onboarding (2.2) só precisa criar o restaurante; não precisa inserir o vínculo de owner na mão.
-- **Validação de transição de status no banco.** As transições da seção 5.3 são validadas por trigger: status terminal é imutável e saltos são rejeitados.
-- **`restaurant_id` denormalizado em `menu_items`.** Mantido conforme o documento base, com trigger garantindo a coerência com a categoria.
+- **Identidade do cliente na RLS.** O cliente não tem conta no Supabase Auth; as políticas leem o claim `customer_id` que a Edge Function da Fase 4 emitirá. Até lá, acesso de cliente é negado por padrão.
+- **Owner atribuído por trigger** (`assign_restaurant_owner`). O onboarding só cria o restaurante — confirmado na 2.2.
+- **Item indisponível fica visível e bloqueado na vitrine** (política `menu_items_select_public`); o que some para o cliente é categoria/restaurante inativo.
+- **Validação de transição de status de pedido no banco** (trigger); status terminal é imutável.
+- **`restaurant_id` denormalizado em `menu_items`**, com trigger de coerência.
+- **Painel opera no primeiro restaurante do usuário** (`RestaurantProvider`): o suporte visual a múltiplos restaurantes por conta fica para depois do MVP.
+- **Uploads com nome único por envio** (`logo-<timestamp>.png`) para evitar cache velho do CDN; arquivos antigos ficam órfãos no bucket (aceitável por ora).
 
 ---
 
 ## 5. Débito técnico a limpar
 
-- **Página temporária `/status`** (`src/pages/StatusPage.tsx` + rota em `src/app/router.tsx`). Foi criada para conferir no navegador que o front lê o seed pelo Supabase. **Remover na Fase 3**, quando a vitrine real (`/:slug`) mostrar o cardápio de verdade. Os dois pontos a apagar estão marcados com o comentário `TEMPORÁRIO`.
-- **Aviso de chunk > 500 kB no build.** O bundle único já passa de 500 kB. Não é bloqueante agora; endereçar com code-splitting por rota quando a Fase 2/3 crescer o app.
+- **Página temporária `/status`** (`src/pages/StatusPage.tsx` + rota) — **remover na Fase 3** (pontos marcados com `TEMPORÁRIO`).
+- **Aviso de chunk > 500 kB no build** — endereçar com code-splitting por rota (candidato natural: separar painel e vitrine) quando a Fase 3 crescer o app.
+- **Arquivos órfãos nos buckets** ao trocar logo/capa/imagens várias vezes — limpar quando houver rotina de manutenção (pós-MVP).
 
 ---
 
 ## 6. Como rodar e testar localmente
 
-`npm run dev` sobe em `http://localhost:5173`. O que é testável hoje (o front ainda é placeholder; telas reais vêm nas Fases 2 e 3):
+`npm run dev` sobe em `http://localhost:5173`:
 
-- **`/status`** — lê a Cantina da Nona ao vivo do Supabase e lista categorias e itens. "Conectado ✓" confirma `.env` + client + RLS de leitura pública de ponta a ponta.
-- **`/`, `/admin`, `/qualquer-slug`** — renderizam marcadores "Em construção"; validam roteamento e layouts.
-- **Dashboard do Supabase** — Table Editor / SQL Editor para inspecionar tabelas e seed. Repopular com `supabase/seed.sql` (idempotente).
+- **`/admin`** — painel completo: crie conta em `/admin/cadastro` ou use o restaurante de teste (`mmr-onboard-test@gmail.com` / `RangoTeste!123`, restaurante "Pizzaria do Zé").
+- **`/status`** — diagnóstico da conexão com o Supabase (lê a Cantina da Nona do seed).
+- **`/`, `/qualquer-slug`** — ainda placeholders; vitrine real na Fase 3.
 
 Detalhes no [README](../README.md#estado-atual-e-como-testar).
 
@@ -97,13 +113,12 @@ Detalhes no [README](../README.md#estado-atual-e-como-testar).
 
 ## 7. Ordem de retomada
 
-1. **Fase 2** (painel do restaurante): login, onboarding com slug, layout, perfil, CRUD de categorias e itens
-2. **Fase 3** (vitrine do cliente): resolução por slug, grid de categorias, listagem de itens, carrinho — **remover a `/status` aqui**
-3. **0.4** finaliza assim que a Vercel estiver conectada
+1. **Fase 3** (vitrine do cliente): resolução por slug, header + grid de categorias, listagem de itens, carrinho — **remover a `/status` aqui**
+2. **0.4** finaliza assim que a Vercel estiver conectada (independente; pode ser feita a qualquer momento)
 
 | Marco | Significado |
 |---|---|
-| Fim da Fase 2 | Restaurante monta o cardápio |
+| ✅ Fim da Fase 2 | Restaurante monta o cardápio |
 | Fim da Fase 3 | Cliente navega e monta o carrinho |
 | Fim da Fase 6 | MVP funcional (pedido pago e operado) |
 | Fim da Fase 9 | Pronto para produção |
@@ -112,4 +127,4 @@ Detalhes no [README](../README.md#estado-atual-e-como-testar).
 
 ## 8. Resumo de progresso
 
-**11 de 50 tarefas** entregues (toda a Fase 0 exceto a Vercel + toda a Fase 1). Próximo passo natural: Fase 2. Nenhum retrabalho pendente, salvo a remoção da `/status` na Fase 3.
+**16 de 50 tarefas** entregues (Fases 0, 1 e 2 completas, exceto a Vercel na 0.4). Próximo passo natural: **Fase 3 — vitrine do cliente**.
