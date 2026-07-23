@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { RequireAuth } from '@/features/auth/RequireAuth'
 import { PublicLayout } from './layouts/PublicLayout'
 import { StoreLayout } from './layouts/StoreLayout'
 import { AdminLayout } from './layouts/AdminLayout'
@@ -13,6 +14,8 @@ import { CheckoutPage } from '@/pages/store/CheckoutPage'
 import { OrderTrackingPage } from '@/pages/store/OrderTrackingPage'
 import { ReviewPage } from '@/pages/store/ReviewPage'
 import { LoginPage } from '@/pages/admin/LoginPage'
+import { ForgotPasswordPage } from '@/pages/admin/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/admin/ResetPasswordPage'
 import { DashboardPage } from '@/pages/admin/DashboardPage'
 import { MenuAdminPage } from '@/pages/admin/MenuAdminPage'
 import { ProfileAdminPage } from '@/pages/admin/ProfileAdminPage'
@@ -29,9 +32,15 @@ export const router = createBrowserRouter([
   // TEMPORÁRIO: diagnóstico de conexão com o Supabase (remover na Fase 3).
   { path: '/status', element: <StatusPage /> },
   { path: '/admin/login', element: <LoginPage /> },
+  { path: '/admin/recuperar-senha', element: <ForgotPasswordPage /> },
+  { path: '/admin/redefinir-senha', element: <ResetPasswordPage /> },
   {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <RequireAuth>
+        <AdminLayout />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'cardapio', element: <MenuAdminPage /> },

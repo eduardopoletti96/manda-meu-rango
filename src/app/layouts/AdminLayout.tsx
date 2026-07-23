@@ -1,4 +1,8 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { LogOut } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/features/auth/auth-context'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -13,9 +17,17 @@ const navItems = [
 // Layout do painel do restaurante. A sidebar definitiva com dados do
 // restaurante logado chega na tarefa 2.3.
 export function AdminLayout() {
+  const { session } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    navigate('/admin/login', { replace: true })
+  }
+
   return (
     <div className="flex min-h-screen">
-      <aside className="bg-card w-56 shrink-0 border-r p-4">
+      <aside className="bg-card flex w-56 shrink-0 flex-col border-r p-4">
         <span className="font-display text-lg font-bold">Manda meu Rango</span>
         <nav className="mt-6 flex flex-col gap-1">
           {navItems.map((item) => (
@@ -36,6 +48,15 @@ export function AdminLayout() {
             </NavLink>
           ))}
         </nav>
+        <div className="mt-auto flex flex-col gap-2 border-t pt-4">
+          <p className="text-muted-foreground truncate text-xs" title={session?.user.email}>
+            {session?.user.email}
+          </p>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut />
+            Sair
+          </Button>
+        </div>
       </aside>
       <main className="flex-1 p-6">
         <Outlet />
