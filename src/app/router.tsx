@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { RequireAuth } from '@/features/auth/RequireAuth'
+import { RestaurantProvider } from '@/features/restaurant/RestaurantProvider'
 import { PublicLayout } from './layouts/PublicLayout'
 import { StoreLayout } from './layouts/StoreLayout'
 import { AdminLayout } from './layouts/AdminLayout'
@@ -14,6 +15,8 @@ import { CheckoutPage } from '@/pages/store/CheckoutPage'
 import { OrderTrackingPage } from '@/pages/store/OrderTrackingPage'
 import { ReviewPage } from '@/pages/store/ReviewPage'
 import { LoginPage } from '@/pages/admin/LoginPage'
+import { SignUpPage } from '@/pages/admin/SignUpPage'
+import { OnboardingPage } from '@/pages/admin/OnboardingPage'
 import { ForgotPasswordPage } from '@/pages/admin/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/admin/ResetPasswordPage'
 import { DashboardPage } from '@/pages/admin/DashboardPage'
@@ -32,13 +35,24 @@ export const router = createBrowserRouter([
   // TEMPORÁRIO: diagnóstico de conexão com o Supabase (remover na Fase 3).
   { path: '/status', element: <StatusPage /> },
   { path: '/admin/login', element: <LoginPage /> },
+  { path: '/admin/cadastro', element: <SignUpPage /> },
   { path: '/admin/recuperar-senha', element: <ForgotPasswordPage /> },
   { path: '/admin/redefinir-senha', element: <ResetPasswordPage /> },
+  {
+    path: '/admin/onboarding',
+    element: (
+      <RequireAuth>
+        <OnboardingPage />
+      </RequireAuth>
+    ),
+  },
   {
     path: '/admin',
     element: (
       <RequireAuth>
-        <AdminLayout />
+        <RestaurantProvider>
+          <AdminLayout />
+        </RestaurantProvider>
       </RequireAuth>
     ),
     children: [

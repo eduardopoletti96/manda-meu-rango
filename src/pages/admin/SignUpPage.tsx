@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/auth-context'
 import { authErrorMessage } from '@/features/auth/auth-errors'
@@ -8,37 +8,52 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export function LoginPage() {
+export function SignUpPage() {
   const { session, loading } = useAuth()
-  const location = useLocation()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Rota que o visitante tentou acessar antes de cair no login.
-  const from = (location.state as { from?: string } | null)?.from ?? '/admin'
-
+  // Quem já está logado segue direto para o onboarding (ou painel).
   if (!loading && session) {
-    return <Navigate to={from} replace />
+    return <Navigate to="/admin/onboarding" replace />
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
-    setSubmitting(true)
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    setSubmitting(false)
-    if (signInError) {
-      setError(authErrorMessage(signInError))
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.')
       return
     }
-    navigate(from, { replace: true })
+    if (password !== confirmation) {
+      setError('As senhas não coincidem.')
+      return
+    }
+    setSubmitting(true)
+    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
+    setSubmitting(false)
+    if (signUpError) {
+      setError(authErrorMessage(signUpError))
+      return
+    }
+    // Com "Confirm email" desligado a sessão vem imediatamente; se a
+    // confirmação voltar a ser exigida (produção), orienta o usuário.
+    if (!data.session) {
+      setError('Conta criada. Confirme seu e-mail para continuar e depois faça login.')
+      return
+    }
+    navigate('/admin/onboarding', { replace: true })
   }
 
   return (
-    <AuthScreen title="Entrar" description="Acesse o painel com seu e-mail e senha.">
+    <AuthScreen
+      title="Criar conta"
+      description="Crie sua conta para cadastrar o restaurante no Manda meu Rango."
+    >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="email">E-mail</Label>
@@ -52,22 +67,27 @@ export function LoginPage() {
           />
         </div>
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Senha</Label>
-            <Link
-              to="/admin/recuperar-senha"
-              className="text-primary text-sm font-medium hover:underline"
-            >
-              Esqueci minha senha
-            </Link>
-          </div>
+          <Label htmlFor="password">Senha</Label>
           <Input
             id="password"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             required
+            minLength={6}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="confirmation">Confirmar senha</Label>
+          <Input
+            id="confirmation"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={6}
+            value={confirmation}
+            onChange={(event) => setConfirmation(event.target.value)}
           />
         </div>
         {error ? (
@@ -76,12 +96,12 @@ export function LoginPage() {
           </p>
         ) : null}
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Entrando…' : 'Entrar'}
+          {submitting ? 'Criando conta…' : 'Criar conta'}
         </Button>
         <p className="text-muted-foreground text-center text-sm">
-          Ainda não tem conta?{' '}
-          <Link to="/admin/cadastro" className="text-primary font-medium hover:underline">
-            Criar conta
+          Já tem conta?{' '}
+          <Link to="/admin/login" className="text-primary font-medium hover:underline">
+            Entrar
           </Link>
         </p>
       </form>
