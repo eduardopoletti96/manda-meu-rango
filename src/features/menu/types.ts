@@ -2,6 +2,8 @@ import type { Database } from '@/types/database'
 
 export type Category = Database['public']['Tables']['categories']['Row']
 
+export type MenuItem = Database['public']['Tables']['menu_items']['Row']
+
 // Linha da listagem do painel: categoria + contagem agregada de itens.
 export type CategoryWithCount = Category & { menu_items: { count: number }[] }
 

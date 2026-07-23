@@ -21,6 +21,7 @@ import { ForgotPasswordPage } from '@/pages/admin/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/admin/ResetPasswordPage'
 import { DashboardPage } from '@/pages/admin/DashboardPage'
 import { MenuAdminPage } from '@/pages/admin/MenuAdminPage'
+import { CategoryItemsAdminPage } from '@/pages/admin/CategoryItemsAdminPage'
 import { ProfileAdminPage } from '@/pages/admin/ProfileAdminPage'
 import { OrdersKanbanPage } from '@/pages/admin/OrdersKanbanPage'
 import { ReportsPage } from '@/pages/admin/ReportsPage'
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'cardapio', element: <MenuAdminPage /> },
+      { path: 'cardapio/:categoriaId', element: <CategoryItemsAdminPage /> },
       { path: 'perfil', element: <ProfileAdminPage /> },
       { path: 'pedidos', element: <OrdersKanbanPage /> },
       { path: 'relatorios', element: <ReportsPage /> },

@@ -15,28 +15,27 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Link } from 'react-router-dom'
 import { GripVertical, ImageIcon, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { formatBRL } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { categoryItemCount, type CategoryWithCount } from './types'
+import type { MenuItem } from './types'
 
 function SortableRow({
-  category,
-  onToggleActive,
+  item,
+  onToggleAvailable,
   onEdit,
   onDelete,
 }: {
-  category: CategoryWithCount
-  onToggleActive: (category: CategoryWithCount, active: boolean) => void
-  onEdit: (category: CategoryWithCount) => void
-  onDelete: (category: CategoryWithCount) => void
+  item: MenuItem
+  onToggleAvailable: (item: MenuItem, available: boolean) => void
+  onEdit: (item: MenuItem) => void
+  onDelete: (item: MenuItem) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: category.id,
+    id: item.id,
   })
-  const itemCount = categoryItemCount(category)
 
   return (
     <li
@@ -49,16 +48,16 @@ function SortableRow({
     >
       <button
         type="button"
-        aria-label={`Reordenar ${category.name}`}
+        aria-label={`Reordenar ${item.name}`}
         className="text-muted-foreground hover:text-foreground cursor-grab touch-none py-1"
         {...attributes}
         {...listeners}
       >
         <GripVertical className="size-4" />
       </button>
-      {category.image_url ? (
+      {item.image_url ? (
         <img
-          src={category.image_url}
+          src={item.image_url}
           alt=""
           className="size-12 shrink-0 rounded-lg border object-cover"
         />
@@ -67,39 +66,35 @@ function SortableRow({
           <ImageIcon className="size-4" />
         </div>
       )}
-      <Link to={`/admin/cardapio/${category.id}`} className="group min-w-0 flex-1">
-        <p
-          className={cn(
-            'truncate font-medium group-hover:underline',
-            !category.is_active && 'text-muted-foreground',
-          )}
-        >
-          {category.name}
+      <div className="min-w-0 flex-1">
+        <p className={cn('truncate font-medium', !item.is_available && 'text-muted-foreground')}>
+          {item.name}
         </p>
-        <p className="text-muted-foreground text-sm">
-          {itemCount === 1 ? '1 item' : `${itemCount} itens`}
-          {!category.is_active && ' · inativa'}
+        <p className="text-muted-foreground truncate text-sm">
+          {formatBRL(item.price)}
+          {item.description ? ` · ${item.description}` : ''}
+          {!item.is_available && ' · indisponível'}
         </p>
-      </Link>
+      </div>
       <Switch
-        aria-label={`${category.is_active ? 'Desativar' : 'Ativar'} ${category.name}`}
-        checked={category.is_active}
-        onCheckedChange={(active) => onToggleActive(category, active)}
+        aria-label={`${item.is_available ? 'Marcar como indisponível' : 'Marcar como disponível'}: ${item.name}`}
+        checked={item.is_available}
+        onCheckedChange={(available) => onToggleAvailable(item, available)}
       />
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label={`Editar ${category.name}`}
-        onClick={() => onEdit(category)}
+        aria-label={`Editar ${item.name}`}
+        onClick={() => onEdit(item)}
       >
         <Pencil />
       </Button>
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label={`Excluir ${category.name}`}
+        aria-label={`Excluir ${item.name}`}
         className="text-destructive hover:text-destructive"
-        onClick={() => onDelete(category)}
+        onClick={() => onDelete(item)}
       >
         <Trash2 />
       </Button>
@@ -107,18 +102,18 @@ function SortableRow({
   )
 }
 
-export function CategoryList({
-  categories,
+export function ItemList({
+  items,
   onReorder,
-  onToggleActive,
+  onToggleAvailable,
   onEdit,
   onDelete,
 }: {
-  categories: CategoryWithCount[]
-  onReorder: (next: CategoryWithCount[]) => void
-  onToggleActive: (category: CategoryWithCount, active: boolean) => void
-  onEdit: (category: CategoryWithCount) => void
-  onDelete: (category: CategoryWithCount) => void
+  items: MenuItem[]
+  onReorder: (next: MenuItem[]) => void
+  onToggleAvailable: (item: MenuItem, available: boolean) => void
+  onEdit: (item: MenuItem) => void
+  onDelete: (item: MenuItem) => void
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -130,23 +125,23 @@ export function CategoryList({
     if (!over || active.id === over.id) {
       return
     }
-    const from = categories.findIndex((category) => category.id === active.id)
-    const to = categories.findIndex((category) => category.id === over.id)
-    onReorder(arrayMove(categories, from, to))
+    const from = items.findIndex((item) => item.id === active.id)
+    const to = items.findIndex((item) => item.id === over.id)
+    onReorder(arrayMove(items, from, to))
   }
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext
-        items={categories.map((category) => category.id)}
+        items={items.map((item) => item.id)}
         strategy={verticalListSortingStrategy}
       >
         <ul className="flex flex-col gap-2">
-          {categories.map((category) => (
+          {items.map((item) => (
             <SortableRow
-              key={category.id}
-              category={category}
-              onToggleActive={onToggleActive}
+              key={item.id}
+              item={item}
+              onToggleAvailable={onToggleAvailable}
               onEdit={onEdit}
               onDelete={onDelete}
             />
