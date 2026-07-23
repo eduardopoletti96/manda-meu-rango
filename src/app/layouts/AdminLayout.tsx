@@ -1,5 +1,17 @@
-import { Navigate, NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { useState } from 'react'
+import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import {
+  BarChart3,
+  ClipboardList,
+  ExternalLink,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Store,
+  UtensilsCrossed,
+  Users,
+  X,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/auth-context'
 import { useRestaurant } from '@/features/restaurant/restaurant-context'
@@ -7,20 +19,75 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { to: '/admin', label: 'Dashboard', end: true },
-  { to: '/admin/pedidos', label: 'Pedidos' },
-  { to: '/admin/cardapio', label: 'Cardápio' },
-  { to: '/admin/relatorios', label: 'Relatórios' },
-  { to: '/admin/equipe', label: 'Equipe' },
-  { to: '/admin/perfil', label: 'Perfil' },
+  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/admin/pedidos', label: 'Pedidos', icon: ClipboardList },
+  { to: '/admin/cardapio', label: 'Cardápio', icon: UtensilsCrossed },
+  { to: '/admin/relatorios', label: 'Relatórios', icon: BarChart3 },
+  { to: '/admin/equipe', label: 'Equipe', icon: Users },
+  { to: '/admin/perfil', label: 'Perfil', icon: Store },
 ]
 
-// Layout do painel do restaurante. A sidebar definitiva com dados do
-// restaurante logado chega na tarefa 2.3.
+function SidebarContent({
+  restaurantName,
+  userEmail,
+  onNavigate,
+  onLogout,
+}: {
+  restaurantName: string
+  userEmail: string | undefined
+  onNavigate?: () => void
+  onLogout: () => void
+}) {
+  return (
+    <>
+      <div>
+        <span className="font-display text-lg font-bold">Manda meu Rango</span>
+        <p className="text-muted-foreground truncate text-sm" title={restaurantName}>
+          {restaurantName}
+        </p>
+      </div>
+      <nav className="mt-6 flex flex-col gap-1">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted',
+              )
+            }
+          >
+            <item.icon className="size-4" />
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+      <div className="mt-auto flex flex-col gap-2 border-t pt-4">
+        <p className="text-muted-foreground truncate text-xs" title={userEmail}>
+          {userEmail}
+        </p>
+        <Button variant="outline" size="sm" onClick={onLogout}>
+          <LogOut />
+          Sair
+        </Button>
+      </div>
+    </>
+  )
+}
+
+// Layout do painel do restaurante: sidebar fixa no desktop, drawer no
+// mobile e header com a seção atual e o atalho para a página pública.
 export function AdminLayout() {
   const { session } = useAuth()
   const { restaurant, loading, error } = useRestaurant()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -48,45 +115,74 @@ export function AdminLayout() {
     return <Navigate to="/admin/onboarding" replace />
   }
 
+  const currentSection = navItems.find((item) =>
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to),
+  )
+
   return (
-    <div className="flex min-h-screen">
-      <aside className="bg-card flex w-56 shrink-0 flex-col border-r p-4">
-        <span className="font-display text-lg font-bold">Manda meu Rango</span>
-        <p className="text-muted-foreground truncate text-sm" title={restaurant.name}>
-          {restaurant.name}
-        </p>
-        <nav className="mt-6 flex flex-col gap-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                cn(
-                  'rounded-xl px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted',
-                )
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="mt-auto flex flex-col gap-2 border-t pt-4">
-          <p className="text-muted-foreground truncate text-xs" title={session?.user.email}>
-            {session?.user.email}
-          </p>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut />
-            Sair
-          </Button>
-        </div>
+    <div className="min-h-screen">
+      <aside className="bg-card fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r p-4 md:flex">
+        <SidebarContent
+          restaurantName={restaurant.name}
+          userEmail={session?.user.email}
+          onLogout={handleLogout}
+        />
       </aside>
-      <main className="flex-1 p-6">
-        <Outlet />
-      </main>
+
+      {mobileNavOpen ? (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <button
+            type="button"
+            aria-label="Fechar menu"
+            className="bg-foreground/40 absolute inset-0"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <aside className="bg-card absolute inset-y-0 left-0 flex w-60 flex-col border-r p-4">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="absolute top-3 right-3"
+              aria-label="Fechar menu"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              <X />
+            </Button>
+            <SidebarContent
+              restaurantName={restaurant.name}
+              userEmail={session?.user.email}
+              onNavigate={() => setMobileNavOpen(false)}
+              onLogout={handleLogout}
+            />
+          </aside>
+        </div>
+      ) : null}
+
+      <div className="flex min-h-screen flex-col md:pl-60">
+        <header className="bg-background/95 sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b px-4 backdrop-blur">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="md:hidden"
+            aria-label="Abrir menu"
+            onClick={() => setMobileNavOpen(true)}
+          >
+            <Menu />
+          </Button>
+          <h1 className="text-lg font-semibold">{currentSection?.label ?? 'Painel'}</h1>
+          <a
+            href={`/${restaurant.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary ml-auto flex items-center gap-1 text-sm font-medium hover:underline"
+          >
+            Ver loja
+            <ExternalLink className="size-3.5" />
+          </a>
+        </header>
+        <main className="min-w-0 flex-1 p-4 md:p-6">
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }
