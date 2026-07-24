@@ -12,36 +12,46 @@ import { CartPage } from '@/pages/store/CartPage'
 import { CheckoutPage } from '@/pages/store/CheckoutPage'
 import { OrderTrackingPage } from '@/pages/store/OrderTrackingPage'
 import { ReviewPage } from '@/pages/store/ReviewPage'
-import { LoginPage } from '@/pages/admin/LoginPage'
-import { SignUpPage } from '@/pages/admin/SignUpPage'
-import { OnboardingPage } from '@/pages/admin/OnboardingPage'
-import { ForgotPasswordPage } from '@/pages/admin/ForgotPasswordPage'
-import { ResetPasswordPage } from '@/pages/admin/ResetPasswordPage'
-import { DashboardPage } from '@/pages/admin/DashboardPage'
-import { MenuAdminPage } from '@/pages/admin/MenuAdminPage'
-import { CategoryItemsAdminPage } from '@/pages/admin/CategoryItemsAdminPage'
-import { ProfileAdminPage } from '@/pages/admin/ProfileAdminPage'
-import { OrdersKanbanPage } from '@/pages/admin/OrdersKanbanPage'
-import { ReportsPage } from '@/pages/admin/ReportsPage'
-import { TeamPage } from '@/pages/admin/TeamPage'
 
 // Estrutura de rotas conforme docs/PROJETO_Manda_meu_Rango.md §3.
+// As páginas do painel carregam sob demanda (route.lazy): a vitrine é o
+// caminho crítico do cliente e fica no chunk principal.
 export const router = createBrowserRouter([
   {
     element: <PublicLayout />,
     children: [{ path: '/', element: <LandingPage /> }],
   },
-  { path: '/admin/login', element: <LoginPage /> },
-  { path: '/admin/cadastro', element: <SignUpPage /> },
-  { path: '/admin/recuperar-senha', element: <ForgotPasswordPage /> },
-  { path: '/admin/redefinir-senha', element: <ResetPasswordPage /> },
+  {
+    path: '/admin/login',
+    lazy: async () => ({ Component: (await import('@/pages/admin/LoginPage')).LoginPage }),
+  },
+  {
+    path: '/admin/cadastro',
+    lazy: async () => ({ Component: (await import('@/pages/admin/SignUpPage')).SignUpPage }),
+  },
+  {
+    path: '/admin/recuperar-senha',
+    lazy: async () => ({
+      Component: (await import('@/pages/admin/ForgotPasswordPage')).ForgotPasswordPage,
+    }),
+  },
+  {
+    path: '/admin/redefinir-senha',
+    lazy: async () => ({
+      Component: (await import('@/pages/admin/ResetPasswordPage')).ResetPasswordPage,
+    }),
+  },
   {
     path: '/admin/onboarding',
-    element: (
-      <RequireAuth>
-        <OnboardingPage />
-      </RequireAuth>
-    ),
+    element: <RequireAuth />,
+    children: [
+      {
+        index: true,
+        lazy: async () => ({
+          Component: (await import('@/pages/admin/OnboardingPage')).OnboardingPage,
+        }),
+      },
+    ],
   },
   {
     path: '/admin',
@@ -53,13 +63,46 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'cardapio', element: <MenuAdminPage /> },
-      { path: 'cardapio/:categoriaId', element: <CategoryItemsAdminPage /> },
-      { path: 'perfil', element: <ProfileAdminPage /> },
-      { path: 'pedidos', element: <OrdersKanbanPage /> },
-      { path: 'relatorios', element: <ReportsPage /> },
-      { path: 'equipe', element: <TeamPage /> },
+      {
+        index: true,
+        lazy: async () => ({
+          Component: (await import('@/pages/admin/DashboardPage')).DashboardPage,
+        }),
+      },
+      {
+        path: 'cardapio',
+        lazy: async () => ({
+          Component: (await import('@/pages/admin/MenuAdminPage')).MenuAdminPage,
+        }),
+      },
+      {
+        path: 'cardapio/:categoriaId',
+        lazy: async () => ({
+          Component: (await import('@/pages/admin/CategoryItemsAdminPage')).CategoryItemsAdminPage,
+        }),
+      },
+      {
+        path: 'perfil',
+        lazy: async () => ({
+          Component: (await import('@/pages/admin/ProfileAdminPage')).ProfileAdminPage,
+        }),
+      },
+      {
+        path: 'pedidos',
+        lazy: async () => ({
+          Component: (await import('@/pages/admin/OrdersKanbanPage')).OrdersKanbanPage,
+        }),
+      },
+      {
+        path: 'relatorios',
+        lazy: async () => ({
+          Component: (await import('@/pages/admin/ReportsPage')).ReportsPage,
+        }),
+      },
+      {
+        path: 'equipe',
+        lazy: async () => ({ Component: (await import('@/pages/admin/TeamPage')).TeamPage }),
+      },
     ],
   },
   {
