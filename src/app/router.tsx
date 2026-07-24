@@ -5,8 +5,6 @@ import { PublicLayout } from './layouts/PublicLayout'
 import { StoreLayout } from './layouts/StoreLayout'
 import { AdminLayout } from './layouts/AdminLayout'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-// TEMPORÁRIO: página de diagnóstico da conexão com o Supabase (remover na Fase 3).
-import { StatusPage } from '@/pages/StatusPage'
 import { LandingPage } from '@/pages/public/LandingPage'
 import { StoreHomePage } from '@/pages/store/StoreHomePage'
 import { CategoryPage } from '@/pages/store/CategoryPage'
@@ -33,8 +31,6 @@ export const router = createBrowserRouter([
     element: <PublicLayout />,
     children: [{ path: '/', element: <LandingPage /> }],
   },
-  // TEMPORÁRIO: diagnóstico de conexão com o Supabase (remover na Fase 3).
-  { path: '/status', element: <StatusPage /> },
   { path: '/admin/login', element: <LoginPage /> },
   { path: '/admin/cadastro', element: <SignUpPage /> },
   { path: '/admin/recuperar-senha', element: <ForgotPasswordPage /> },

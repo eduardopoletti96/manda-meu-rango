@@ -24,10 +24,8 @@ O progresso está detalhado em [docs/PROXIMOS_PASSOS.md](docs/PROXIMOS_PASSOS.md
 O que dá para testar hoje:
 
 1. **Painel do restaurante** — com `npm run dev` rodando, abra **http://localhost:5173/admin**. Crie uma conta (`/admin/cadastro`), cadastre um restaurante no onboarding (com validação de slug ao vivo) e explore: dashboard com resumo do dia, perfil (dados, endereço, entrega/retirada, horários, logo e capa) e cardápio (categorias e itens com drag-and-drop, ativar/desativar e upload de imagens).
-2. **Conexão e dados de seed no navegador** — abra **http://localhost:5173/status**: página temporária que lê o restaurante de seed (Cantina da Nona) direto do Supabase. _(Essa rota é removida na Fase 3.)_
+2. **Vitrine do cliente** — abra **http://localhost:5173/seu-slug** (o slug definido no onboarding) para ver a loja como o cliente vê.
 3. **Dados direto no Supabase** — no dashboard do projeto, em _Table Editor_ ou _SQL Editor_, é possível inspecionar as tabelas e o seed. Para popular/repopular o restaurante fictício, rode [supabase/seed.sql](supabase/seed.sql) no SQL Editor (é idempotente).
-
-> Ainda **não** dá para ver o cardápio em `/seu-slug`: essa tela é a Fase 3. Por enquanto o cardápio aparece no painel (`/admin/cardapio`), em `/status` ou no dashboard do Supabase.
 
 ### Banco de dados
 
