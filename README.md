@@ -19,12 +19,12 @@ npm run dev            # http://localhost:5173
 
 ## Estado atual e como testar
 
-O progresso está detalhado em [docs/PROXIMOS_PASSOS.md](docs/PROXIMOS_PASSOS.md). Em resumo: **Fases 0, 1 e 2 concluídas** — projeto configurado, banco completo (schema, RLS multi-tenant, storage, seed) e **painel do restaurante funcional**: login, cadastro com onboarding, dashboard, perfil completo e gestão do cardápio. A vitrine do cliente é a Fase 3.
+O progresso está detalhado em [docs/PROXIMOS_PASSOS.md](docs/PROXIMOS_PASSOS.md). Em resumo: **Fases 0 a 3 concluídas** — projeto configurado, banco completo (schema, RLS multi-tenant, storage, seed), **painel do restaurante funcional** (login, cadastro com onboarding, dashboard, perfil e gestão do cardápio) e **vitrine do cliente com carrinho**. A identificação do cliente via WhatsApp é a Fase 4.
 
 O que dá para testar hoje:
 
-1. **Painel do restaurante** — com `npm run dev` rodando, abra **http://localhost:5173/admin**. Crie uma conta (`/admin/cadastro`), cadastre um restaurante no onboarding (com validação de slug ao vivo) e explore: dashboard com resumo do dia, perfil (dados, endereço, entrega/retirada, horários, logo e capa) e cardápio (categorias e itens com drag-and-drop, ativar/desativar e upload de imagens).
-2. **Vitrine do cliente** — abra **http://localhost:5173/seu-slug** (o slug definido no onboarding) para ver a loja como o cliente vê.
+1. **Vitrine do cliente** — com `npm run dev` rodando, abra **http://localhost:5173/cantina-da-nona** (restaurante do seed): home com capa, informações e categorias, página de itens com quantidade e adicionar ao carrinho (item indisponível aparece bloqueado), carrinho persistente com observação e total.
+2. **Painel do restaurante** — abra **http://localhost:5173/admin**. Crie uma conta (`/admin/cadastro`), cadastre um restaurante no onboarding (com validação de slug ao vivo) e explore: dashboard com resumo do dia, perfil (dados, endereço, entrega/retirada, horários, logo e capa) e cardápio (categorias e itens com drag-and-drop, ativar/desativar e upload de imagens). O link "Ver loja" abre a vitrine do seu restaurante.
 3. **Dados direto no Supabase** — no dashboard do projeto, em _Table Editor_ ou _SQL Editor_, é possível inspecionar as tabelas e o seed. Para popular/repopular o restaurante fictício, rode [supabase/seed.sql](supabase/seed.sql) no SQL Editor (é idempotente).
 
 ### Banco de dados
