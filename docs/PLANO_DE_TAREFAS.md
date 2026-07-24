@@ -105,27 +105,27 @@ Itens dentro da categoria com nome, descrição, imagem, preço, disponibilidade
 
 ## Fase 3 — Vitrine do cliente
 
-### [ ] 3.1 — Resolução de restaurante por slug (P)
+### [x] 3.1 — Resolução de restaurante por slug (P)
 Carregar dados do restaurante pela URL, tratar 404 e estado de "fechado agora".
 **Aceite:** slug inexistente exibe página amigável de não encontrado.
 **Commit:** `feat(loja): carrega restaurante a partir do slug na URL`
 
-### [ ] 3.2 — Header e grid de categorias (M)
+### [x] 3.2 — Header e grid de categorias (M)
 Capa, logo, informações do restaurante e grid de categorias em 2 colunas com quadros (título + imagem).
 **Aceite:** grid responsivo, imagens com lazy loading e skeleton de carregamento.
 **Commit:** `feat(loja): implementa header e grid de categorias`
 
-### [ ] 3.3 — Listagem de itens e seletor de quantidade (M)
+### [x] 3.3 — Listagem de itens e seletor de quantidade (M)
 Página da categoria com cards de item (nome, imagem, preço) e controle de quantidade com adicionar ao carrinho.
 **Aceite:** feedback visual ao adicionar; item indisponível aparece bloqueado.
 **Commit:** `feat(loja): implementa listagem de itens com seleção de quantidade`
 
-### [ ] 3.4 — Estado do carrinho e ícone no header (M)
+### [x] 3.4 — Estado do carrinho e ícone no header (M)
 Store Zustand com persistência em localStorage, isolada por restaurante; badge com contagem de itens no header, clicável.
 **Aceite:** carrinho sobrevive ao refresh; trocar de restaurante não mistura itens.
 **Commit:** `feat(carrinho): cria store do carrinho e indicador no header`
 
-### [ ] 3.5 — Tela do carrinho (M)
+### [x] 3.5 — Tela do carrinho (M)
 Lista de itens com ajuste de quantidade e remoção, valor total, botão limpar carrinho, campo de observação, botão finalizar e estado vazio.
 **Aceite:** total recalcula corretamente; estado vazio exibe mensagem e link para o cardápio.
 **Commit:** `feat(carrinho): implementa tela do carrinho com total e observação`
