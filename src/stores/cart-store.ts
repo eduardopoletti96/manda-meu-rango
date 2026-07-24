@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type CartItem = {
   itemId: string
@@ -23,22 +24,29 @@ type CartStore = {
 
 export const EMPTY_CART: RestaurantCart = { items: [], notes: '' }
 
-export const useCartStore = create<CartStore>()((set) => ({
-  carts: {},
-  addItem: (restaurantId, item, quantity) =>
-    set((state) => {
-      const cart = state.carts[restaurantId] ?? EMPTY_CART
-      const existing = cart.items.find((entry) => entry.itemId === item.itemId)
-      const items = existing
-        ? cart.items.map((entry) =>
-            entry.itemId === item.itemId
-              ? { ...entry, quantity: entry.quantity + quantity }
-              : entry,
-          )
-        : [...cart.items, { ...item, quantity }]
-      return { carts: { ...state.carts, [restaurantId]: { ...cart, items } } }
+// Persistido em localStorage (tarefa 3.4): o carrinho sobrevive ao refresh e
+// o record por restaurante garante que trocar de loja não mistura os itens.
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set) => ({
+      carts: {},
+      addItem: (restaurantId, item, quantity) =>
+        set((state) => {
+          const cart = state.carts[restaurantId] ?? EMPTY_CART
+          const existing = cart.items.find((entry) => entry.itemId === item.itemId)
+          const items = existing
+            ? cart.items.map((entry) =>
+                entry.itemId === item.itemId
+                  ? { ...entry, quantity: entry.quantity + quantity }
+                  : entry,
+              )
+            : [...cart.items, { ...item, quantity }]
+          return { carts: { ...state.carts, [restaurantId]: { ...cart, items } } }
+        }),
     }),
-}))
+    { name: 'mmr-cart', version: 1 },
+  ),
+)
 
 /** Carrinho do restaurante informado (objeto vazio estável quando não há). */
 export function useCart(restaurantId: string): RestaurantCart {

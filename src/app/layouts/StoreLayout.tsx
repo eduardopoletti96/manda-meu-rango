@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link, Outlet, useParams } from 'react-router-dom'
+import { CartIndicator } from '@/features/cart/CartIndicator'
 import { StoreProvider } from '@/features/store/StoreProvider'
 import { useStore } from '@/features/store/store-context'
 import { todayWindow } from '@/features/store/opening-hours'
@@ -41,7 +42,7 @@ function StoreShell() {
             ) : null}
             <span className="font-display truncate text-lg font-semibold">{restaurant.name}</span>
           </Link>
-          {/* Ícone do carrinho entra aqui na tarefa 3.4. */}
+          <CartIndicator />
         </div>
       </header>
       <ClosedBanner />
