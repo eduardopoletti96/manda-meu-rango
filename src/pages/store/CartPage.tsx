@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useStore } from '@/features/store/store-context'
 import { formatBRL } from '@/lib/format'
 import { cartSubtotal, useCart, useCartStore, type CartItem } from '@/stores/cart-store'
+import { useIdentifiedCustomer } from '@/stores/customer-session-store'
 
 function CartRow({ restaurantId, item }: { restaurantId: string; item: CartItem }) {
   const updateQuantity = useCartStore((state) => state.updateQuantity)
@@ -82,7 +83,19 @@ export function CartPage() {
   const cart = useCart(restaurant.id)
   const setNotes = useCartStore((state) => state.setNotes)
   const clear = useCartStore((state) => state.clear)
+  const identified = useIdentifiedCustomer()
   const subtotal = cartSubtotal(cart)
+
+  // Cliente ainda não identificado passa pela identificação (Fase 4) antes do
+  // checkout; o carrinho persiste, então nada se perde no caminho.
+  function handleCheckout() {
+    const checkout = `/${restaurant.slug}/checkout`
+    void navigate(
+      identified
+        ? checkout
+        : `/${restaurant.slug}/identificacao?next=${encodeURIComponent(checkout)}`,
+    )
+  }
 
   if (cart.items.length === 0) {
     return (
@@ -146,10 +159,7 @@ export function CartPage() {
           </p>
         ) : null}
         <div className="flex flex-col gap-2 sm:flex-row-reverse">
-          <Button
-            className="rounded-2xl sm:flex-1"
-            onClick={() => void navigate(`/${restaurant.slug}/checkout`)}
-          >
+          <Button className="rounded-2xl sm:flex-1" onClick={handleCheckout}>
             Finalizar pedido
           </Button>
           <Button

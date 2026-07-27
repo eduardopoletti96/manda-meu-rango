@@ -9,6 +9,7 @@ import { LandingPage } from '@/pages/public/LandingPage'
 import { StoreHomePage } from '@/pages/store/StoreHomePage'
 import { CategoryPage } from '@/pages/store/CategoryPage'
 import { CartPage } from '@/pages/store/CartPage'
+import { IdentifyPage } from '@/pages/store/IdentifyPage'
 import { CheckoutPage } from '@/pages/store/CheckoutPage'
 import { OrderTrackingPage } from '@/pages/store/OrderTrackingPage'
 import { ReviewPage } from '@/pages/store/ReviewPage'
@@ -112,6 +113,7 @@ export const router = createBrowserRouter([
       { index: true, element: <StoreHomePage /> },
       { path: 'categoria/:categoriaId', element: <CategoryPage /> },
       { path: 'carrinho', element: <CartPage /> },
+      { path: 'identificacao', element: <IdentifyPage /> },
       { path: 'checkout', element: <CheckoutPage /> },
       { path: 'pedido/:orderId', element: <OrderTrackingPage /> },
       { path: 'avaliar/:orderId', element: <ReviewPage /> },
