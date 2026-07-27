@@ -1,12 +1,12 @@
 # Manda meu Rango — Próximos Passos
 
-> Atualizado em 23/07/2026. Complementa o [PLANO_DE_TAREFAS.md](PLANO_DE_TAREFAS.md): este documento registra **onde paramos**, **o que depende de você** e **a ordem de retomada**.
+> Atualizado em 27/07/2026. Complementa o [PLANO_DE_TAREFAS.md](PLANO_DE_TAREFAS.md): este documento registra **onde paramos**, **o que depende de você** e **a ordem de retomada**.
 
 ---
 
 ## 1. Estado atual
 
-**Fases 0, 1, 2 e 3 concluídas** (exceto a Vercel, 0.4). Marco atingido: **o cliente navega pelo cardápio e monta o carrinho**.
+**Fases 0, 1, 2 e 3 concluídas** (exceto a Vercel, 0.4). **Fase 4 implementada** (código completo e commitado), **aguardando deploy e teste** — o passo de validação depende de você (ver 2.A). Marco atingido: **o cliente navega pelo cardápio e monta o carrinho**.
 
 ### Fases 0 a 2 — completas
 
@@ -30,17 +30,41 @@ Todas as tarefas verificadas no navegador (Chrome automatizado) contra o banco r
 
 `npm run lint` e `npm run build` passam (único warning do lint segue sendo o pré-existente do `button.tsx`).
 
+### Fase 4 — implementada (nesta sessão, 27/07/2026), aguardando deploy e teste
+
+Toda a identificação do cliente por WhatsApp foi escrita. **Como não há Docker local**, o teste ponta a ponta depende de subir as Edge Functions no projeto remoto — combinamos deixar o **deploy por sua conta** (runbook em 2.A). Por isso os checkboxes 4.1–4.3 no plano seguem **abertos até a validação**; o código está commitado.
+
+- **4.1** — Edge Function `send-whatsapp` com camada de provedor: **Meta Cloud API com fallback "fake"** (sem `WHATSAPP_API_TOKEN`, loga o código no console em vez de enviar), registro em `notification_logs` e um retry. É interna (exige o service role no `Authorization`). Módulos em `supabase/functions/_shared/` (`cors`, `supabase-admin`, `whatsapp`, `notify`).
+- **4.2** — `send-phone-token` (código de 6 dígitos, guarda só o hash SHA-256 com pepper, TTL 5 min, rate limit 1/min e 5/hora) e `verify-phone-token` (comparação em tempo constante, limite de 5 tentativas, `upsert` do cliente por telefone e emissão de **JWT HS256 com o claim `customer_id`** que a RLS lê). Migration `20260727120000_customer_token_hardening.sql` blinda a criação de restaurante contra tokens de cliente.
+- **4.3** — Tela `/:slug/identificacao` em duas etapas (nome + telefone com máscara BR → código, com reenvio por contador de 60 s e estado "já identificado"). Sessão do cliente em store Zustand persistida (`src/stores/customer-session-store.ts`). O "Finalizar" do carrinho passa pela identificação quando preciso; o carrinho persiste. Em modo fake, a tela mostra o código para facilitar o teste.
+
+**Decisão de identidade:** o cliente continua sem conta no Supabase Auth. O JWT é assinado com o **JWT secret do projeto** (env `CUSTOMER_JWT_SECRET`) e usa `role: authenticated` — os grants de tabela padrão valem e a policy de onboarding foi endurecida para negar esse token. A validação do token pelo PostgREST só passa a importar na Fase 5 (chamadas autenticadas do cliente).
+
 ---
 
 ## 2. Ações que dependem de você
 
-### A. Vercel (conclui a 0.4 — **único bloqueio de setup restante**)
+### A. Deploy e teste da Fase 4 (WhatsApp) — prioridade atual
+
+As Edge Functions estão prontas no repo, mas **não há Docker local**, então o teste passa por subir tudo no projeto remoto linkado (`byhsxpwxfgvsltflxvmz`). Passos (rode os comandos com o prefixo `!` para o login interativo funcionar):
+
+- [ ] **Login na CLI**: `npx supabase login`
+- [ ] **Aplicar a migration** de blindagem: `npx supabase db push`
+- [ ] **Definir o segredo da identidade**: `npx supabase secrets set CUSTOMER_JWT_SECRET="<JWT Secret do dashboard → Settings → API>"`
+- [ ] **(para testar sem WhatsApp real)** `npx supabase secrets set WHATSAPP_DEV_ECHO=true` — o código aparece na própria tela e nos logs; **desligue antes de produção**
+- [ ] **Deploy das functions**: `npx supabase functions deploy send-whatsapp send-phone-token verify-phone-token`
+  - `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são injetadas automaticamente — **não** as configure.
+- [ ] **Testar**: `npm run dev` → uma loja → adicionar item → **Finalizar** → identificação → nome + telefone → o código chega no WhatsApp (ou aparece na tela em modo dev) → confirmar → cliente identificado e no checkout. Dar **refresh**: a sessão persiste. Conferir a linha em `notification_logs`.
+
+Credenciais reais da Meta (`WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_VERIFICATION`) entram quando você as tiver — aí o provedor real substitui o fake sozinho. Só então marcamos os checkboxes 4.1–4.3 no plano.
+
+### B. Vercel (conclui a 0.4)
 
 - [ ] Criar conta em [vercel.com](https://vercel.com) e importar o repo `manda-meu-rango` (framework: **Vite**)
 - [ ] Variáveis no projeto Vercel: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_APP_BASE_URL` (a URL de produção)
 - [ ] Confirmar que o preview por PR está habilitado (padrão da Vercel)
 
-### B. URLs de redirecionamento no Supabase (necessário para o e-mail de recuperação de senha)
+### C. URLs de redirecionamento no Supabase (necessário para o e-mail de recuperação de senha)
 
 No dashboard → **Authentication → URL Configuration**:
 
@@ -49,14 +73,14 @@ No dashboard → **Authentication → URL Configuration**:
 
 Sem isso, o e-mail de "esqueci minha senha" chega mas o link cai em URL não autorizada. Lembrete: o SMTP embutido do Supabase tem limite baixo — suficiente para testes; o Resend entra na Fase 7.
 
-### C. Limpeza opcional de dados de teste
+### D. Limpeza opcional de dados de teste
 
 - [ ] **Usuários no Authentication**: `mmr-*`/`st-*` antigos, `mmr-auth-<timestamp>@gmail.com`, `mmr-ui-test@gmail.com` e `mmr-onboard-test@gmail.com` (senha de teste: `RangoTeste!123`). Inofensivos; remova no dashboard se quiser.
 - [ ] **Restaurante de teste "Pizzaria do Zé"** (slug `pizzaria-do-ze`, dono `mmr-onboard-test`): a Fase 3 já usou; agora pode apagar quando quiser (Table Editor → `restaurants`; o cascade limpa o resto). A **Cantina da Nona** (seed) segue útil para testar a vitrine com mais categorias/itens.
 
-### D. Mais adiante (avisarei quando chegar a hora)
+### E. Mais adiante (avisarei quando chegar a hora)
 
-- [ ] **Fase 4** — Cloud API do WhatsApp (Meta): `WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`
+- [ ] **Fase 4 (real)** — Cloud API do WhatsApp (Meta): `WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` e o template aprovado. Até lá, o provedor fake cobre o desenvolvimento.
 - [ ] **Fase 5** — Stripe em modo teste: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `VITE_STRIPE_PUBLISHABLE_KEY`
 - [ ] **Fase 7** — Resend: `RESEND_API_KEY`
 - [ ] **Fase 9** — Sentry e domínio customizado
@@ -78,7 +102,7 @@ Antes de produção (Fase 9), reavaliar a confirmação de e-mail para donos de 
 
 ## 4. Decisões de arquitetura em vigor
 
-- **Identidade do cliente na RLS.** O cliente não tem conta no Supabase Auth; as políticas leem o claim `customer_id` que a Edge Function da Fase 4 emitirá. Até lá, acesso de cliente é negado por padrão.
+- **Identidade do cliente na RLS.** O cliente não tem conta no Supabase Auth; as políticas leem o claim `customer_id` que o `verify-phone-token` (Fase 4) emite — JWT HS256 assinado com `CUSTOMER_JWT_SECRET` (o JWT secret do projeto), `role: authenticated`, sessão de 30 dias em store persistida. A policy de insert de `restaurants` foi endurecida para negar esse token (não é um dono em potencial). O token só é validado pelo PostgREST a partir da Fase 5 (chamadas autenticadas do cliente).
 - **Owner atribuído por trigger** (`assign_restaurant_owner`). O onboarding só cria o restaurante.
 - **Item indisponível fica visível e bloqueado na vitrine**; o que some para o cliente é categoria/restaurante inativo. A vitrine filtra `is_active` explicitamente porque, para um **membro logado** do restaurante, a RLS devolveria também o conteúdo inativo.
 - **"Aberto agora" usa a hora local do navegador** (MVP Brasil; fuso por restaurante fica para depois). Restaurante **sem nenhum horário configurado é tratado como aberto** (estado `unknown` — sem banner), para não parecer permanentemente fechado.
@@ -114,8 +138,9 @@ Detalhes no [README](../README.md#estado-atual-e-como-testar).
 
 ## 7. Ordem de retomada
 
-1. **Fase 4** (identificação do cliente): Edge Functions de WhatsApp (`send-whatsapp`, `send-phone-token`, `verify-phone-token`) e telas de identificação. **Depende do item D (credenciais da Cloud API do WhatsApp)** — sem elas dá para adiantar a estrutura das functions e as telas com um provedor "fake" local.
-2. **0.4** finaliza assim que a Vercel estiver conectada (independente; pode ser feita a qualquer momento).
+1. **Fase 4** (identificação do cliente): **código completo** (`send-whatsapp`, `send-phone-token`, `verify-phone-token` e as telas). Falta **deploy + teste** no projeto remoto (runbook em 2.A). É o próximo passo concreto.
+2. **Fase 5** (checkout e pagamento): destravada assim que a Fase 4 estiver validada — o `create-order` já vai consumir o JWT do cliente emitido agora.
+3. **0.4** finaliza assim que a Vercel estiver conectada (independente; pode ser feita a qualquer momento).
 
 | Marco | Significado |
 |---|---|
@@ -128,4 +153,4 @@ Detalhes no [README](../README.md#estado-atual-e-como-testar).
 
 ## 8. Resumo de progresso
 
-**21 de 50 tarefas** entregues (Fases 0 a 3 completas, exceto a Vercel na 0.4). Próximo passo natural: **Fase 4 — identificação do cliente** (WhatsApp), que destrava o checkout da Fase 5.
+**21 de 50 tarefas** entregues e validadas (Fases 0 a 3, exceto a Vercel na 0.4). **+3 implementadas** (Fase 4, 4.1–4.3), aguardando **deploy + teste** para serem marcadas como concluídas. Próximo passo concreto: **subir e validar a Fase 4** (runbook em 2.A); na sequência, **Fase 5 — checkout e pagamento**.
