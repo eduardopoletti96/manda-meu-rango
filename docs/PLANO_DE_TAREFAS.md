@@ -137,14 +137,15 @@ Lista de itens com ajuste de quantidade e remoção, valor total, botão limpar 
 ### [ ] 4.1 — Integração com API de WhatsApp (M)
 Edge Function `send-whatsapp` com templates, registro em `notification_logs` e retry.
 **Aceite:** mensagem de teste entregue e registrada no log.
+**Status:** implementada e deployada; validada com o **provedor fake** (envio 200, log gravado). Aberta até a **entrega real via Meta Cloud API** (aceite pede "mensagem entregue").
 **Commit:** `feat(whatsapp): integra API de envio de mensagens`
 
-### [ ] 4.2 — Envio e validação do token (M)
+### [x] 4.2 — Envio e validação do token (M)
 Edge Functions `send-phone-token` e `verify-phone-token` com hash, expiração de 5 min, rate limit e limite de tentativas.
 **Aceite:** token expirado ou incorreto é rejeitado com mensagem clara.
 **Commit:** `feat(auth): implementa verificação de telefone por token no WhatsApp`
 
-### [ ] 4.3 — Tela de identificação do cliente (M)
+### [x] 4.3 — Tela de identificação do cliente (M)
 Formulário de nome e telefone com máscara, tela de digitação do código com reenvio por contador.
 **Aceite:** ao validar, cliente fica autenticado e o carrinho é preservado.
 **Commit:** `feat(auth): cria telas de identificação e confirmação do cliente`

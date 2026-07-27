@@ -6,7 +6,7 @@
 
 ## 1. Estado atual
 
-**Fases 0, 1, 2 e 3 concluídas** (exceto a Vercel, 0.4). **Fase 4 implementada** (código completo e commitado), **aguardando deploy e teste** — o passo de validação depende de você (ver 2.A). Marco atingido: **o cliente navega pelo cardápio e monta o carrinho**.
+**Fases 0, 1, 2 e 3 concluídas** (exceto a Vercel, 0.4). **Fase 4 deployada e validada ponta a ponta** (backend + UI) com o provedor fake — **4.2 e 4.3 marcados no plano**; **4.1 segue aberto** até a entrega real via Meta Cloud API (o aceite pede "mensagem entregue"). Marco atingido: **o cliente navega pelo cardápio, monta o carrinho e se identifica por WhatsApp**.
 
 ### Fases 0 a 2 — completas
 
@@ -30,33 +30,36 @@ Todas as tarefas verificadas no navegador (Chrome automatizado) contra o banco r
 
 `npm run lint` e `npm run build` passam (único warning do lint segue sendo o pré-existente do `button.tsx`).
 
-### Fase 4 — implementada (nesta sessão, 27/07/2026), aguardando deploy e teste
+### Fase 4 — deployada e validada (nesta sessão, 27/07/2026)
 
-Toda a identificação do cliente por WhatsApp foi escrita. **Como não há Docker local**, o teste ponta a ponta depende de subir as Edge Functions no projeto remoto — combinamos deixar o **deploy por sua conta** (runbook em 2.A). Por isso os checkboxes 4.1–4.3 no plano seguem **abertos até a validação**; o código está commitado.
+Toda a identificação do cliente por WhatsApp foi escrita, **deployada no projeto remoto e validada ponta a ponta** com o provedor fake. Migration `20260727120000_customer_token_hardening.sql` aplicada; as 3 Edge Functions deployadas; segredos `CUSTOMER_JWT_SECRET` (= Legacy JWT Secret) e `WHATSAPP_DEV_ECHO=true` configurados. Evidências: `send-phone-token` HTTP 200 (fake + dev echo), `verify-phone-token` cria cliente e emite JWT, código incorreto/expirado rejeitado, JWT do cliente **aceito pelo PostgREST (200)**, insert de restaurante com token de cliente **negado (403)**, e o fluxo de UI completo (item → carrinho → identificação → checkout, sessão persiste no refresh). **4.2 e 4.3 marcados**; **4.1 aberto** até a entrega real via Meta.
 
 - **4.1** — Edge Function `send-whatsapp` com camada de provedor: **Meta Cloud API com fallback "fake"** (sem `WHATSAPP_API_TOKEN`, loga o código no console em vez de enviar), registro em `notification_logs` e um retry. É interna (exige o service role no `Authorization`). Módulos em `supabase/functions/_shared/` (`cors`, `supabase-admin`, `whatsapp`, `notify`).
 - **4.2** — `send-phone-token` (código de 6 dígitos, guarda só o hash SHA-256 com pepper, TTL 5 min, rate limit 1/min e 5/hora) e `verify-phone-token` (comparação em tempo constante, limite de 5 tentativas, `upsert` do cliente por telefone e emissão de **JWT HS256 com o claim `customer_id`** que a RLS lê). Migration `20260727120000_customer_token_hardening.sql` blinda a criação de restaurante contra tokens de cliente.
 - **4.3** — Tela `/:slug/identificacao` em duas etapas (nome + telefone com máscara BR → código, com reenvio por contador de 60 s e estado "já identificado"). Sessão do cliente em store Zustand persistida (`src/stores/customer-session-store.ts`). O "Finalizar" do carrinho passa pela identificação quando preciso; o carrinho persiste. Em modo fake, a tela mostra o código para facilitar o teste.
 
-**Decisão de identidade:** o cliente continua sem conta no Supabase Auth. O JWT é assinado com o **JWT secret do projeto** (env `CUSTOMER_JWT_SECRET`) e usa `role: authenticated` — os grants de tabela padrão valem e a policy de onboarding foi endurecida para negar esse token. A validação do token pelo PostgREST só passa a importar na Fase 5 (chamadas autenticadas do cliente).
+**Decisão de identidade:** o cliente continua sem conta no Supabase Auth. O JWT é assinado com o **JWT secret do projeto** (env `CUSTOMER_JWT_SECRET`, = **Legacy JWT Secret** do dashboard) e usa `role: authenticated` — os grants de tabela padrão valem e a policy de onboarding foi endurecida para negar esse token. Validado nesta sessão: o PostgREST aceita o token HS256 (200).
+
+> ⚠️ **Descoberta desta sessão (impacta a Fase 5):** o projeto **já tem o novo sistema de chaves assimétricas ativo** (segredos auto-injetados `SUPABASE_JWKS`, `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS`). O Legacy JWT Secret HS256 ainda é aceito (a anon key HS256 prova), mas a Supabase o está **deprecando**. Se as chaves legadas forem desativadas, tokens HS256 do cliente param de validar no PostgREST. **Antes da Fase 5, decidir:** manter o HS256 legado **ou** fazer o `create-order` (Edge Function com service role) **validar o token do cliente ele mesmo** — mais robusto e desacoplado das chaves do projeto (RLS por `current_customer_id()` deixaria de depender do secret legado).
 
 ---
 
 ## 2. Ações que dependem de você
 
-### A. Deploy e teste da Fase 4 (WhatsApp) — prioridade atual
+### A. Deploy e teste da Fase 4 (WhatsApp) — ✅ concluído (27/07/2026)
 
-As Edge Functions estão prontas no repo, mas **não há Docker local**, então o teste passa por subir tudo no projeto remoto linkado (`byhsxpwxfgvsltflxvmz`). Passos (rode os comandos com o prefixo `!` para o login interativo funcionar):
+Feito nesta sessão no projeto remoto linkado (`byhsxpwxfgvsltflxvmz`):
 
-- [ ] **Login na CLI**: `npx supabase login`
-- [ ] **Aplicar a migration** de blindagem: `npx supabase db push`
-- [ ] **Definir o segredo da identidade**: `npx supabase secrets set CUSTOMER_JWT_SECRET="<JWT Secret do dashboard → Settings → API>"`
-- [ ] **(para testar sem WhatsApp real)** `npx supabase secrets set WHATSAPP_DEV_ECHO=true` — o código aparece na própria tela e nos logs; **desligue antes de produção**
-- [ ] **Deploy das functions**: `npx supabase functions deploy send-whatsapp send-phone-token verify-phone-token`
-  - `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são injetadas automaticamente — **não** as configure.
-- [ ] **Testar**: `npm run dev` → uma loja → adicionar item → **Finalizar** → identificação → nome + telefone → o código chega no WhatsApp (ou aparece na tela em modo dev) → confirmar → cliente identificado e no checkout. Dar **refresh**: a sessão persiste. Conferir a linha em `notification_logs`.
+- [x] **Login na CLI** — já estava logado.
+- [x] **Migration** de blindagem aplicada (`npx supabase db push` → `20260727120000_customer_token_hardening.sql`).
+- [x] **`CUSTOMER_JWT_SECRET`** definido (= **Legacy JWT Secret** do dashboard; você setou via PowerShell).
+- [x] **`WHATSAPP_DEV_ECHO=true`** setado — código aparece na tela/logs; **desligar antes de produção**.
+- [x] **3 functions deployadas** (`send-whatsapp send-phone-token verify-phone-token`). `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` são injetadas — **não** configurar.
+- [x] **Validado** via curl (send/verify/PostgREST/insert negado) e no navegador (fluxo de UI completo + persistência no refresh). GIF: `fase4-identificacao-cliente.gif`.
 
-Credenciais reais da Meta (`WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_VERIFICATION`) entram quando você as tiver — aí o provedor real substitui o fake sozinho. Só então marcamos os checkboxes 4.1–4.3 no plano.
+**O que falta para fechar a 4.1:** credenciais reais da Meta (`WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_VERIFICATION`) — aí o provedor real substitui o fake sozinho e a "mensagem entregue" do aceite passa a valer. Ver item E.
+
+Limpeza opcional: clientes de teste (*Cliente Teste / Cliente Fase5 / Maria Teste*) e linhas em `phone_verifications` criados na validação — inofensivos.
 
 ### B. Vercel (conclui a 0.4)
 
@@ -138,8 +141,8 @@ Detalhes no [README](../README.md#estado-atual-e-como-testar).
 
 ## 7. Ordem de retomada
 
-1. **Fase 4** (identificação do cliente): **código completo** (`send-whatsapp`, `send-phone-token`, `verify-phone-token` e as telas). Falta **deploy + teste** no projeto remoto (runbook em 2.A). É o próximo passo concreto.
-2. **Fase 5** (checkout e pagamento): destravada assim que a Fase 4 estiver validada — o `create-order` já vai consumir o JWT do cliente emitido agora.
+1. **Fase 5** (checkout e pagamento): **destravada** — é o próximo passo concreto. O `create-order` já vai consumir o JWT do cliente emitido na Fase 4. Antes de codar, decidir a estratégia de identidade dada a depreciação do Legacy JWT Secret (ver a nota ⚠️ na §4 / "Decisão de identidade").
+2. **Fase 4 (real)** — quando as credenciais da Meta chegarem, o provedor real entra sozinho e a 4.1 fecha (item E).
 3. **0.4** finaliza assim que a Vercel estiver conectada (independente; pode ser feita a qualquer momento).
 
 | Marco | Significado |
@@ -153,4 +156,4 @@ Detalhes no [README](../README.md#estado-atual-e-como-testar).
 
 ## 8. Resumo de progresso
 
-**21 de 50 tarefas** entregues e validadas (Fases 0 a 3, exceto a Vercel na 0.4). **+3 implementadas** (Fase 4, 4.1–4.3), aguardando **deploy + teste** para serem marcadas como concluídas. Próximo passo concreto: **subir e validar a Fase 4** (runbook em 2.A); na sequência, **Fase 5 — checkout e pagamento**.
+**23 de 50 tarefas** entregues e validadas (Fases 0 a 3, exceto a Vercel na 0.4; **+ 4.2 e 4.3** da Fase 4). A **4.1** está implementada, deployada e validada no provedor fake, mas segue **aberta** até a entrega real via Meta. Próximo passo concreto: **Fase 5 — checkout e pagamento** (o `create-order` consome o JWT do cliente; ver a nota ⚠️ da §4 sobre a identidade antes de codar).
