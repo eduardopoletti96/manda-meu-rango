@@ -154,24 +154,25 @@ Formulário de nome e telefone com máscara, tela de digitação do código com 
 
 ## Fase 5 — Checkout, endereço e pagamento
 
-### [ ] 5.1 — Seleção de retirada ou entrega (P)
+### [x] 5.1 — Seleção de retirada ou entrega (P)
 Etapa inicial do checkout respeitando as modalidades habilitadas pelo restaurante.
 **Aceite:** taxa de entrega entra no total apenas quando entrega é escolhida.
 **Commit:** `feat(checkout): implementa escolha entre retirada e entrega`
 
-### [ ] 5.2 — Modal de endereço com busca por CEP (M)
+### [x] 5.2 — Modal de endereço com busca por CEP (M)
 Consulta ao ViaCEP preenchendo logradouro, bairro, cidade e UF; número e complemento manuais; fallback para preenchimento manual.
 **Aceite:** CEP inválido exibe erro; endereço é salvo em `customer_addresses`.
 **Commit:** `feat(checkout): implementa cadastro de endereço com busca por CEP`
 
-### [ ] 5.3 — Lista e seleção de endereços salvos (P)
+### [x] 5.3 — Lista e seleção de endereços salvos (P)
 Escolher endereço existente, definir padrão, editar e excluir.
 **Aceite:** endereço padrão vem pré-selecionado.
 **Commit:** `feat(checkout): implementa seleção de endereços salvos`
 
-### [ ] 5.4 — Criação do pedido no servidor (M)
+### [x] 5.4 — Criação do pedido no servidor (M)
 Edge Function `create-order`: revalida preços no banco, recalcula subtotal, taxa e total, calcula `estimated_ready_at` e grava o pedido como `pending`.
 **Aceite:** manipular preços no front não altera o valor cobrado.
+**Status:** o estado inicial é `pending_payment` (novo valor do enum `order_status`); `payment_status` fica `pending`. O pedido só vira `placed` quando o webhook confirmar o pagamento (5.6).
 **Commit:** `feat(pedidos): implementa criação de pedido com cálculo no servidor`
 
 ### [ ] 5.5 — Integração com Stripe (G)
