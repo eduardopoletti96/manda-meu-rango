@@ -657,6 +657,7 @@ export type Database = {
       notification_channel: "whatsapp" | "email"
       notification_status: "sent" | "failed"
       order_status:
+        | "pending_payment"
         | "placed"
         | "in_production"
         | "ready"
@@ -796,6 +797,7 @@ export const Constants = {
       notification_channel: ["whatsapp", "email"],
       notification_status: ["sent", "failed"],
       order_status: [
+        "pending_payment",
         "placed",
         "in_production",
         "ready",

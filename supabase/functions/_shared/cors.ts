@@ -4,7 +4,10 @@
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  // x-customer-token: JWT do cliente identificado (Fase 5). Vai fora do
+  // Authorization, que segue levando a anon key verificada pelo gateway.
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-customer-token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
