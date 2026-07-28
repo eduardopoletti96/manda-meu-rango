@@ -633,6 +633,35 @@ export type Database = {
           },
         ]
       }
+      stripe_events: {
+        Row: {
+          id: string
+          order_id: string | null
+          received_at: string
+          type: string
+        }
+        Insert: {
+          id: string
+          order_id?: string | null
+          received_at?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          order_id?: string | null
+          received_at?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

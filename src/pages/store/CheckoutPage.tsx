@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Bike, CheckCircle2, ShoppingBag, Store } from 'lucide-react'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Bike, ShoppingBag, Store } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/features/store/store-context'
 import { AddressPicker } from '@/features/checkout/AddressPicker'
-import { createOrder, type CreatedOrder } from '@/features/checkout/order-api'
+import { PaymentResult } from '@/features/checkout/PaymentResult'
+import { createOrder, createPaymentSession } from '@/features/checkout/order-api'
 import { formatBRL } from '@/lib/format'
 import { cartSubtotal, useCart, useCartStore } from '@/stores/cart-store'
 import { useCustomerSession } from '@/stores/customer-session-store'
@@ -43,11 +44,13 @@ function FulfillmentOption({
 // 5.1 — Checkout: modalidade, endereço e resumo.
 //
 // O total mostrado aqui é sempre uma previsão: quem manda é o create-order,
-// que relê os preços no banco. Por isso o resumo exibe o total recalculado
-// assim que o pedido é criado.
+// que relê os preços no banco. Ao confirmar, o pedido é criado e o cliente vai
+// para o Checkout do Stripe (5.5); a volta cai no PaymentResult, via
+// ?pedido=<id>&pagamento=<sucesso|cancelado>.
 export function CheckoutPage() {
   const { restaurant, openState } = useStore()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const cart = useCart(restaurant.id)
   const clearCart = useCartStore((state) => state.clear)
   const session = useCustomerSession()
@@ -61,8 +64,8 @@ export function CheckoutPage() {
   const [addressId, setAddressId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [placed, setPlaced] = useState<CreatedOrder | null>(null)
 
+  const returningOrderId = searchParams.get('pedido')
   const subtotal = cartSubtotal(cart)
   const deliveryFee = fulfillment === 'delivery' ? restaurant.delivery_fee : 0
   const total = subtotal + deliveryFee
@@ -75,32 +78,16 @@ export function CheckoutPage() {
     return <Navigate to={`/${restaurant.slug}/identificacao?next=${next}`} replace />
   }
 
-  if (placed) {
+  // Volta do Stripe: a URL carrega o pedido, e é o webhook (não esta tela) que
+  // diz se ele foi pago.
+  if (returningOrderId) {
     return (
-      <div className="flex flex-col items-center gap-4 py-10 text-center">
-        <CheckCircle2 aria-hidden className="text-success size-14" />
-        <div>
-          <h1 className="text-xl font-bold">Pedido #{placed.orderNumber} registrado</h1>
-          <p className="text-muted-foreground text-sm">
-            Total de {formatBRL(placed.total)}
-            {placed.estimatedReadyAt
-              ? ` · previsão de ficar pronto às ${new Date(placed.estimatedReadyAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-              : ''}
-          </p>
-        </div>
-        <p className="bg-warning/15 max-w-sm rounded-md px-3 py-2 text-xs">
-          O pagamento ainda não está ligado (tarefa 5.5). O pedido ficou aguardando pagamento e só
-          entra na fila do restaurante quando for confirmado.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button asChild className="rounded-2xl">
-            <Link to={`/${restaurant.slug}/pedido/${placed.orderId}`}>Acompanhar pedido</Link>
-          </Button>
-          <Button asChild variant="outline" className="rounded-2xl">
-            <Link to={`/${restaurant.slug}`}>Voltar ao cardápio</Link>
-          </Button>
-        </div>
-      </div>
+      <PaymentResult
+        token={session.token}
+        slug={restaurant.slug}
+        orderId={returningOrderId}
+        outcome={searchParams.get('pagamento') ?? ''}
+      />
     )
   }
 
@@ -135,16 +122,28 @@ export function CheckoutPage() {
       notes: cart.notes,
       items: cart.items.map((item) => ({ itemId: item.itemId, quantity: item.quantity })),
     })
-    setSubmitting(false)
-
     if (!result.ok) {
+      setSubmitting(false)
       setError(result.error)
       return
     }
+
     // O pedido congelou nome, preço e quantidade de cada item: o carrinho já
-    // cumpriu seu papel.
+    // cumpriu seu papel. Se o pagamento falhar, dá para retomar pelo pedido.
     clearCart(restaurant.id)
-    setPlaced(result.order)
+
+    const payment = await createPaymentSession(session.token, result.order.orderId)
+    if (!payment.ok) {
+      setSubmitting(false)
+      setError(payment.error)
+      void navigate(`/${restaurant.slug}/checkout?pedido=${result.order.orderId}`, {
+        replace: true,
+      })
+      return
+    }
+    // Sai da aplicação para o Checkout hospedado do Stripe; a volta é pela
+    // success_url ou cancel_url configuradas na sessão.
+    window.location.href = payment.url
   }
 
   const bothModes = restaurant.delivery_enabled && restaurant.pickup_enabled
