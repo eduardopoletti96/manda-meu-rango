@@ -175,14 +175,16 @@ Edge Function `create-order`: revalida preços no banco, recalcula subtotal, tax
 **Status:** o estado inicial é `pending_payment` (novo valor do enum `order_status`); `payment_status` fica `pending`. O pedido só vira `placed` quando o webhook confirmar o pagamento (5.6).
 **Commit:** `feat(pedidos): implementa criação de pedido com cálculo no servidor`
 
-### [ ] 5.5 — Integração com Stripe (G)
+### [x] 5.5 — Integração com Stripe (G)
 Edge Function que cria a sessão/PaymentIntent, tela de pagamento e páginas de retorno de sucesso e cancelamento.
 **Aceite:** pagamento de teste conclui e retorna à aplicação.
+**Status:** Checkout hospedado do Stripe (`create-payment-session`); a volta cai em `?pedido=<id>&pagamento=<sucesso|cancelado>`, tratada pelo `PaymentResult`, que consulta o pedido até o webhook confirmar.
 **Commit:** `feat(pagamento): integra Stripe no fluxo de checkout`
 
-### [ ] 5.6 — Webhook do Stripe (M)
+### [x] 5.6 — Webhook do Stripe (M)
 Edge Function idempotente que confirma pagamento, muda `payment_status` para `paid` e o pedido para `placed`.
 **Aceite:** evento duplicado não gera pedido duplicado; falha de pagamento marca `failed`.
+**Status:** deploy exige `--no-verify-jwt` (quem chama é o Stripe, sem JWT). Idempotência pela PK de `stripe_events` mais o filtro `status = 'pending_payment'` no update. Reenvio real do evento validado no painel do Stripe: nada mudou.
 **Commit:** `feat(pagamento): implementa webhook de confirmação do Stripe`
 
 ---
