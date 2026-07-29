@@ -40,9 +40,9 @@ Toda a identificação do cliente por WhatsApp foi escrita, **deployada no proje
 
 **Decisão de identidade:** o cliente continua sem conta no Supabase Auth. O JWT é assinado com o **JWT secret do projeto** (env `CUSTOMER_JWT_SECRET`, = **Legacy JWT Secret** do dashboard) e usa `role: authenticated` — os grants de tabela padrão valem e a policy de onboarding foi endurecida para negar esse token. Validado: o PostgREST aceita o token HS256 (200).
 
-### Fase 5 — 5.1 a 5.4 entregues (nesta sessão, 28/07/2026)
+### Fase 5 — completa (28 e 29/07/2026)
 
-Migration `20260728120000_order_pending_payment.sql` aplicada, Edge Function `create-order` deployada, e o fluxo validado por API (script de curl/PowerShell) **e** no navegador contra o banco real.
+**Checkout e pedido (5.1 a 5.4, 28/07).** Migration `20260728120000_order_pending_payment.sql` aplicada, Edge Function `create-order` deployada, e o fluxo validado por API (script de curl/PowerShell) **e** no navegador contra o banco real.
 
 - ✅ **5.1** — `/:slug/checkout`: escolha de modalidade respeitando `delivery_enabled`/`pickup_enabled` (com card informativo quando só há uma), endereço de retirada do restaurante, resumo dos itens com a observação do carrinho, e bloqueio por pedido mínimo com o quanto falta. **Aceite verificado:** alternar para retirada tira a taxa do total (R$ 106,50 → R$ 98,00).
 - ✅ **5.2** — `AddressDialog` com busca por CEP (ViaCEP e **BrasilAPI como fallback**, timeout de 6 s): logradouro, bairro, cidade e UF vêm preenchidos e travados, com "Editar manualmente" para destravar; CEP não encontrado ou provedores fora abrem o formulário manual em vez de bloquear.
@@ -53,9 +53,7 @@ Migration `20260728120000_order_pending_payment.sql` aplicada, Edge Function `cr
 
 **Estado inicial do pedido:** o enum `order_status` ganhou **`pending_payment`** (agora o default de `orders.status`). O documento base (§6.2) exige que o pedido só entre em produção após o webhook confirmar o pagamento, e o `create-order` grava antes de cobrar — sem esse estado, um checkout abandonado apareceria no kanban como pedido a produzir. A transição `pending_payment → placed` foi liberada no trigger de validação; cancelar continua permitido de qualquer estado ativo.
 
-### Fase 5 — 5.5 e 5.6 entregues, fase fechada (nesta sessão, 29/07/2026)
-
-Chaves do Stripe configuradas pelo usuário, migration `20260729120000_stripe_events.sql` aplicada, funções `create-payment-session` e `stripe-webhook` deployadas, e **um pagamento de teste completo validado no navegador**.
+**Pagamento (5.5 e 5.6, 29/07).** Chaves do Stripe configuradas pelo usuário, migration `20260729120000_stripe_events.sql` aplicada, funções `create-payment-session` e `stripe-webhook` deployadas, e **um pagamento de teste completo validado no navegador**.
 
 - ✅ **5.5** — `create-payment-session` recebe um pedido `pending_payment` e devolve a URL do **Checkout hospedado** do Stripe, montando as linhas a partir dos itens já gravados (taxa de entrega vira uma linha própria). A volta cai em `?pedido=<id>&pagamento=<sucesso|cancelado>`, tratada pelo `PaymentResult`. **Aceite verificado:** pagamento com `4242 4242 4242 4242` concluiu (R$ 64,50) e voltou para a aplicação mostrando "Pagamento confirmado — pedido #5".
 - ✅ **5.6** — `stripe-webhook` valida a assinatura (variante assíncrona, Web Crypto) e só então promove o pedido para `paid`/`placed`. **Aceite verificado nas duas metades:** o reenvio real do evento pelo painel do Stripe não mudou nada (`paid_at` idêntico, histórico ainda com uma única transição, um único pedido pago); e o cartão de recusa `4000 0000 0000 0002` marcou `payment_status = failed` **mantendo o pedido em `pending_payment`**, para o cliente tentar de novo sem refazer o carrinho.
@@ -79,9 +77,7 @@ Feito nesta sessão no projeto remoto linkado (`byhsxpwxfgvsltflxvmz`):
 - [x] **3 functions deployadas** (`send-whatsapp send-phone-token verify-phone-token`). `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` são injetadas — **não** configurar.
 - [x] **Validado** via curl (send/verify/PostgREST/insert negado) e no navegador (fluxo de UI completo + persistência no refresh). GIF: `fase4-identificacao-cliente.gif`.
 
-**O que falta para fechar a 4.1:** credenciais reais da Meta (`WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_VERIFICATION`) — aí o provedor real substitui o fake sozinho e a "mensagem entregue" do aceite passa a valer. Ver item E.
-
-Limpeza opcional: clientes de teste (*Cliente Teste / Cliente Fase5 / Maria Teste*) e linhas em `phone_verifications` criados na validação — inofensivos.
+**O que falta para fechar a 4.1:** credenciais reais da Meta (`WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_VERIFICATION`) — aí o provedor real substitui o fake sozinho e a "mensagem entregue" do aceite passa a valer. Ver item F.
 
 ### B. Vercel (conclui a 0.4)
 
@@ -100,8 +96,12 @@ Sem isso, o e-mail de "esqueci minha senha" chega mas o link cai em URL não aut
 
 ### D. Limpeza opcional de dados de teste
 
+Nada aqui atrapalha o desenvolvimento — é tudo cosmético.
+
 - [ ] **Usuários no Authentication**: `mmr-*`/`st-*` antigos, `mmr-auth-<timestamp>@gmail.com`, `mmr-ui-test@gmail.com` e `mmr-onboard-test@gmail.com` (senha de teste: `RangoTeste!123`). Inofensivos; remova no dashboard se quiser.
 - [ ] **Restaurante de teste "Pizzaria do Zé"** (slug `pizzaria-do-ze`, dono `mmr-onboard-test`): a Fase 3 já usou; agora pode apagar quando quiser (Table Editor → `restaurants`; o cascade limpa o resto). A **Cantina da Nona** (seed) segue útil para testar a vitrine com mais categorias/itens.
+- [ ] **Clientes de teste** (*Cliente Teste / Cliente Fase5 / Maria Teste / Cliente Stripe / Cliente Intruso*), endereços e linhas em `phone_verifications` criados nas validações.
+- [ ] **Pedidos de teste na Cantina da Nona**: #1, #2, #3 e #4 em `pending_payment`, #6 em `pending_payment` com `payment_status = failed`, e **#5 pago e em `placed`**. Sugiro **manter o #5** — é o insumo pronto para começar o kanban da Fase 6.
 
 ### E. Stripe — ✅ concluído (29/07/2026)
 
@@ -159,6 +159,8 @@ Antes de produção (Fase 9), reavaliar a confirmação de e-mail para donos de 
 
 ## 5. Débito técnico a limpar
 
+- **`create-order` não tem chave de idempotência.** O botão do checkout fica desabilitado durante o envio, mas um retry de rede pode criar dois pedidos `pending_payment` para o mesmo carrinho. Nenhum deles seria cobrado duas vezes (cada um exige sua própria sessão de pagamento), então o efeito é lixo no banco, não prejuízo. Vale resolver quando houver volume — o padrão é o cliente mandar um `Idempotency-Key` e a function reaproveitar o pedido pendente equivalente.
+- **Sem limpeza de pedidos abandonados.** Pedido que fica em `pending_payment` para sempre não incomoda o kanban (ele lista por `status`), mas acumula. O evento `checkout.session.expired` já marca `failed`; falta uma rotina que cancele os antigos.
 - **Arquivos órfãos nos buckets** ao trocar logo/capa/imagens várias vezes — limpar quando houver rotina de manutenção (pós-MVP).
 - ~~Página temporária `/status`~~ — removida na 3.1.
 - ~~Chunk > 500 kB no build~~ — resolvido com code-splitting por rota.
