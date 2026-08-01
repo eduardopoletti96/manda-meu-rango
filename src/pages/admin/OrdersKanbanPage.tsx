@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Bell, BellOff } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -27,7 +28,11 @@ import { OrderCard } from '@/features/orders/OrderCard'
 import { DraggableOrderCard } from '@/features/orders/DraggableOrderCard'
 import { OrderDetailDialog } from '@/features/orders/OrderDetailDialog'
 import { OrderStatusActions } from '@/features/orders/OrderStatusActions'
+import { useOrdersRealtime, type OrdersChange } from '@/features/orders/useOrdersRealtime'
+import { isChimeEnabled, playNewOrderChime, setChimeEnabled } from '@/features/orders/new-order-chime'
 import type { KanbanOrder } from '@/features/orders/types'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 type Board = Record<KanbanStatus, KanbanOrder[]>
 
@@ -83,6 +88,11 @@ export function OrdersKanbanPage() {
   const [openOrderId, setOpenOrderId] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [movingId, setMovingId] = useState<string | null>(null)
+  const [arrivedIds, setArrivedIds] = useState<string[]>([])
+  const [soundOn, setSoundOn] = useState(isChimeEnabled)
+  // Espelho dos ids já conhecidos: o evento do Realtime chega antes de o
+  // estado novo existir, e é este conjunto que diz se o pedido é inédito.
+  const knownIds = useRef(new Set<string>())
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -112,6 +122,68 @@ export function OrdersKanbanPage() {
       cancelled = true
     }
   }, [restaurantId, apply])
+
+  useEffect(() => {
+    if (orders) {
+      knownIds.current = new Set(orders.map((order) => order.id))
+    }
+  }, [orders])
+
+  /**
+   * 6.5 — Um pedido mudou em algum lugar (outro operador, ou o webhook do
+   * Stripe confirmando o pagamento). Relemos aquele pedido: o payload do
+   * Realtime não traz cliente nem itens.
+   */
+  const handleRealtimeChange = useCallback(
+    ({ orderId, event }: OrdersChange) => {
+      if (!restaurantId) {
+        return
+      }
+      if (event === 'DELETE') {
+        knownIds.current.delete(orderId)
+        setOrders((current) => current?.filter((order) => order.id !== orderId) ?? current)
+        return
+      }
+
+      const inedito = !knownIds.current.has(orderId)
+      knownIds.current.add(orderId)
+
+      void fetchOrderById(restaurantId, orderId).then((fresh) => {
+        // Pedido recém-criado ainda está em pending_payment: só entra no quadro
+        // quando o pagamento for confirmado — que é outro evento, este mesmo.
+        if (!fresh || fresh.status === 'pending_payment') {
+          knownIds.current.delete(orderId)
+          return
+        }
+        setOrders((current) => {
+          if (!current) {
+            return current
+          }
+          if (current.some((order) => order.id === fresh.id)) {
+            return current.map((order) => (order.id === fresh.id ? fresh : order))
+          }
+          return [...current, fresh].sort((a, b) => a.created_at.localeCompare(b.created_at))
+        })
+
+        if (inedito && fresh.status === 'placed') {
+          playNewOrderChime()
+          setArrivedIds((current) => [...current, fresh.id])
+        }
+      })
+    },
+    [restaurantId],
+  )
+
+  const realtimeState = useOrdersRealtime(restaurantId, handleRealtimeChange)
+
+  // O destaque some sozinho: ele marca "chegou agora", não "não foi visto".
+  useEffect(() => {
+    if (arrivedIds.length === 0) {
+      return
+    }
+    const timer = window.setTimeout(() => setArrivedIds([]), 30_000)
+    return () => window.clearTimeout(timer)
+  }, [arrivedIds])
 
   const replaceOrder = useCallback((id: string, patch: Partial<KanbanOrder>) => {
     setOrders((current) =>
@@ -205,7 +277,53 @@ export function OrdersKanbanPage() {
                   : '')}
           </p>
         </div>
+
+        <div className="flex items-center gap-3">
+          <span
+            className="text-muted-foreground flex items-center gap-1.5 text-xs"
+            title={
+              realtimeState === 'live'
+                ? 'Novos pedidos e mudanças de outros operadores aparecem sozinhos.'
+                : 'Sem conexão em tempo real — recarregue a página para ver mudanças.'
+            }
+          >
+            <span
+              aria-hidden
+              className={cn(
+                'size-2 rounded-full',
+                realtimeState === 'live' ? 'bg-success' : 'bg-muted-foreground animate-pulse',
+              )}
+            />
+            {realtimeState === 'live' ? 'Tempo real' : 'Reconectando…'}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            aria-pressed={soundOn}
+            onClick={() => {
+              const next = !soundOn
+              setChimeEnabled(next)
+              setSoundOn(next)
+              if (next) {
+                playNewOrderChime()
+              }
+            }}
+          >
+            {soundOn ? <Bell /> : <BellOff />}
+            {soundOn ? 'Som ligado' : 'Som desligado'}
+          </Button>
+        </div>
       </div>
+
+      {arrivedIds.length > 0 ? (
+        <p role="status" className="bg-primary/10 text-foreground rounded-md px-3 py-2 text-sm">
+          <strong>
+            {arrivedIds.length === 1 ? 'Pedido novo' : `${arrivedIds.length} pedidos novos`}
+          </strong>{' '}
+          {arrivedIds.length === 1 ? 'acabou de chegar' : 'acabaram de chegar'} — veja em "Pedido
+          realizado".
+        </p>
+      ) : null}
 
       {error ? (
         <p role="alert" className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
@@ -252,6 +370,7 @@ export function OrdersKanbanPage() {
                     key={order.id}
                     order={order}
                     onOpen={() => setOpenOrderId(order.id)}
+                    highlighted={arrivedIds.includes(order.id)}
                   />
                 ))}
               </OrderColumn>
