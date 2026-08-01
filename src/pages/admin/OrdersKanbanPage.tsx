@@ -3,8 +3,9 @@ import { useRestaurant } from '@/features/restaurant/restaurant-context'
 import { fetchKanbanOrders } from '@/features/orders/orders-api'
 import { KANBAN_COLUMNS, isKanbanStatus, type KanbanStatus } from '@/features/orders/order-status'
 import { OrderColumn } from '@/features/orders/OrderColumn'
+import { OrderCard } from '@/features/orders/OrderCard'
+import { OrderDetailDialog } from '@/features/orders/OrderDetailDialog'
 import type { KanbanOrder } from '@/features/orders/types'
-import { formatBRL } from '@/lib/format'
 
 type Board = Record<KanbanStatus, KanbanOrder[]>
 
@@ -44,6 +45,7 @@ export function OrdersKanbanPage() {
   const restaurantId = restaurant?.id
   const [orders, setOrders] = useState<KanbanOrder[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null)
 
   const apply = useCallback((result: Awaited<ReturnType<typeof fetchKanbanOrders>>) => {
     if (!result.ok) {
@@ -74,6 +76,7 @@ export function OrdersKanbanPage() {
   }
 
   const board = orders ? groupByStatus(orders) : emptyBoard()
+  const openOrder = orders?.find((order) => order.id === openOrderId) ?? null
   const cancelled = orders?.filter((order) => order.status === 'cancelled').length ?? 0
   const inOperation = KANBAN_COLUMNS.filter((status) => status !== 'finished').reduce(
     (sum, status) => sum + board[status].length,
@@ -114,17 +117,28 @@ export function OrdersKanbanPage() {
               isEmpty={board[status].length === 0}
             >
               {board[status].map((order) => (
-                <article key={order.id} className="bg-card rounded-xl border p-3">
-                  <p className="text-sm font-semibold">
-                    #{order.order_number} · {order.customer?.name ?? 'Cliente'}
-                  </p>
-                  <p className="text-muted-foreground text-xs">{formatBRL(order.total)}</p>
-                </article>
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  onOpen={() => setOpenOrderId(order.id)}
+                />
               ))}
             </OrderColumn>
           ))}
         </div>
       )}
+
+      {openOrder ? (
+        <OrderDetailDialog
+          order={openOrder}
+          open
+          onOpenChange={(next) => {
+            if (!next) {
+              setOpenOrderId(null)
+            }
+          }}
+        />
+      ) : null}
     </div>
   )
 }
