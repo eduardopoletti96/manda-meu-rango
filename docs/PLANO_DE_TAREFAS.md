@@ -191,39 +191,45 @@ Edge Function idempotente que confirma pagamento, muda `payment_status` para `pa
 
 ## Fase 6 — Operação de pedidos
 
-### [ ] 6.1 — Estrutura do kanban (M)
+### [x] 6.1 — Estrutura do kanban (M)
 Cinco colunas com carregamento dos pedidos do dia e contadores por coluna.
 **Aceite:** pedidos aparecem na coluna correta pelo status.
+**Status:** a consulta traz os pedidos do dia **mais** os que continuam em aberto — um pedido da virada da noite não pode sumir do quadro à meia-noite. `pending_payment` fica sempre de fora.
 **Commit:** `feat(pedidos): cria estrutura do kanban de acompanhamento`
 
-### [ ] 6.2 — Card do pedido (M)
+### [x] 6.2 — Card do pedido (M)
 Número, cliente, hora do pedido, previsão de entrega, endereço ou etiqueta de retirada, itens e total; detalhe em modal.
 **Aceite:** card exibe todas as informações da seção 6.4 do documento base.
 **Commit:** `feat(pedidos): implementa card de pedido com detalhes`
 
-### [ ] 6.3 — Timer com semáforo de cores (M)
+### [x] 6.3 — Timer com semáforo de cores (M)
 Hook `useOrderTimer` contando desde `created_at`; verde, laranja a 10 min da previsão, vermelho após o prazo; para em `ready` e em `finished`.
 **Aceite:** cores mudam corretamente em teste com previsão manipulada.
+**Status:** exigiu a coluna `orders.ready_at` (migration `20260801140000`), carimbada por trigger — sem ela não havia onde ler o instante em que o pedido ficou pronto, e o relógio ou seguia correndo ou congelava num valor diferente a cada recarregamento.
 **Commit:** `feat(pedidos): implementa timer com indicação de atraso por cores`
 
-### [ ] 6.4 — Movimentação entre colunas (M)
+### [x] 6.4 — Movimentação entre colunas (M)
 Drag-and-drop com validação das transições permitidas, atualização otimista e registro em `order_status_history`.
 **Aceite:** transição inválida é bloqueada com aviso.
+**Status:** as mesmas transições também estão em botões no detalhe (toque e teclado). Exigiu tornar a trigger `record_order_status_change` SECURITY DEFINER: `order_status_history` só tem policy de leitura, e até aqui todo status vinha do service role.
 **Commit:** `feat(pedidos): implementa movimentação de pedidos entre colunas`
 
-### [ ] 6.5 — Realtime e alerta de novo pedido (M)
+### [x] 6.5 — Realtime e alerta de novo pedido (M)
 Subscription do Supabase Realtime, som e destaque visual ao chegar pedido novo.
 **Aceite:** dois navegadores abertos refletem a mesma mudança em segundos.
+**Status:** o alerta é a transição para `placed`, não o INSERT — o pedido nasce em `pending_payment` e checkout abandonado não faz a cozinha apitar. Som sintetizado no WebAudio, com botão para desligar. Reconexão do socket recarrega o quadro inteiro.
 **Commit:** `feat(pedidos): adiciona atualização em tempo real e alerta de novo pedido`
 
-### [ ] 6.6 — Notificações automáticas por status (M)
+### [x] 6.6 — Notificações automáticas por status (M)
 Disparo de WhatsApp em cada mudança de status conforme a matriz da seção 6.5.
 **Aceite:** cada transição gera exatamente uma mensagem registrada em log.
+**Status:** Edge Function `notify-order-status`, chamada pelo painel; o `stripe-webhook` chama o mesmo módulo ao confirmar o pagamento. A unicidade vem do índice parcial em `notification_logs`, reservado antes do envio. Roda no **provedor fake** enquanto a 4.1 não fecha.
 **Commit:** `feat(notificacoes): dispara mensagens de WhatsApp por mudança de status`
 
-### [ ] 6.7 — Acompanhamento do pedido pelo cliente (M)
+### [x] 6.7 — Acompanhamento do pedido pelo cliente (M)
 Página `/:slug/pedido/:orderId` com linha do tempo do status em tempo real.
 **Aceite:** cliente acompanha sem precisar recarregar a página.
+**Status:** as etapas cumpridas saem de `order_status_history` (hora real, não suposição pela ordem) e o caminho respeita a modalidade. Realtime com `realtime.setAuth` no JWT do cliente, mais um poll de 15 s de reserva. Pedido em `pending_payment` mostra "aguardando pagamento" com botão de concluir.
 **Commit:** `feat(loja): cria página de acompanhamento do pedido pelo cliente`
 
 ---

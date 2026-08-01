@@ -94,9 +94,7 @@ export function OrderDetailDialog({
               </p>
             ) : null}
             {order.finished_at ? (
-              <p className="text-muted-foreground">
-                Finalizado às {formatTime(order.finished_at)}
-              </p>
+              <p className="text-muted-foreground">Finalizado às {formatTime(order.finished_at)}</p>
             ) : null}
           </Field>
         </div>

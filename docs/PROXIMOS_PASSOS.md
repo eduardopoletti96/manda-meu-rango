@@ -1,12 +1,14 @@
 # Manda meu Rango — Próximos Passos
 
-> Atualizado em 29/07/2026. Complementa o [PLANO_DE_TAREFAS.md](PLANO_DE_TAREFAS.md): este documento registra **onde paramos**, **o que depende de você** e **a ordem de retomada**.
+> Atualizado em 01/08/2026. Complementa o [PLANO_DE_TAREFAS.md](PLANO_DE_TAREFAS.md): este documento registra **onde paramos**, **o que depende de você** e **a ordem de retomada**.
 
 ---
 
 ## 1. Estado atual
 
-**Fases 0, 1, 2, 3 e 5 concluídas** (exceto a Vercel, 0.4). **Fase 4** deployada e validada com o provedor fake — **4.2 e 4.3 marcados**; **4.1 segue aberto** até a entrega real via Meta Cloud API. Marco atingido: **o cliente monta o carrinho, se identifica, fecha o pedido e paga de verdade** — o caminho completo do cliente está de pé. O que falta para o MVP é a operação do restaurante (Fase 6).
+**MVP funcional.** Fases 0, 1, 2, 3, 5 e **6** concluídas (exceto a Vercel, 0.4). **Fase 4** deployada e validada com o provedor fake — **4.2 e 4.3 marcados**; **4.1 segue aberto** até a entrega real via Meta Cloud API.
+
+O ciclo fecha ponta a ponta: **o cliente monta o carrinho, se identifica, paga de verdade, o restaurante vê o pedido chegar no kanban e o move até finalizar, e o cliente acompanha cada etapa ao vivo — recebendo um WhatsApp a cada mudança.** Daqui para a frente é refinamento (Fases 7 a 9), não mais caminho crítico.
 
 ### Fases 0 a 2 — completas
 
@@ -62,6 +64,25 @@ Toda a identificação do cliente por WhatsApp foi escrita, **deployada no proje
 
 **Segurança do webhook:** deployado com `--no-verify-jwt`, porque quem chama é o Stripe e ele não tem JWT do Supabase. A autenticação da função é a assinatura do webhook: sem assinatura → 400, assinatura forjada → 400 (ambas verificadas).
 
+### Fase 6 — completa (01/08/2026)
+
+Quatro migrations aplicadas (`20260801120000` a `20260801140000`), a Edge Function `notify-order-status` deployada, o `stripe-webhook` reimplantado, e tudo validado no navegador contra o banco real — inclusive **uma compra de teste completa** com o cartão `4242…`.
+
+- ✅ **6.1** — Kanban com as cinco colunas do §6.4 e contador por coluna. A consulta traz os pedidos do dia **mais** os que continuam em aberto (pedido feito 23h50 e ainda em produção à 00h10 não some na virada); `pending_payment` fica sempre de fora. **Aceite:** quatro pedidos de teste caíram cada um na sua coluna, com os contadores batendo.
+- ✅ **6.2** — Card com número, cliente, hora, previsão, destino (endereço congelado ou etiqueta de retirada), resumo dos itens e total; detalhe em modal com telefone clicável, endereço completo, observação em destaque e preço por item.
+- ✅ **6.3** — `useOrderTimer` com o semáforo do §6.4. Um relógio só para o quadro inteiro (`useSyncExternalStore` + um `setInterval` compartilhado). **Aceite:** verde, laranja, vermelho e parado na mesma tela, com previsão manipulada.
+- ✅ **6.4** — Arrasto entre colunas com atualização otimista; a trigger do banco é quem valida de verdade. Alça de arrastar separada do corpo do card (o corpo abre o detalhe), coluna de destino pelo ponteiro (`pointerWithin`), colunas de altura igual. As mesmas transições em botões no detalhe, para toque e teclado. **Aceite:** transição inválida bloqueada com aviso ("Pedido de retirada não sai para entrega"); as válidas persistiram e apareceram em `order_status_history`.
+- ✅ **6.5** — Realtime nas mudanças de `orders` do restaurante. O payload não traz cliente nem itens, então o evento diz *qual* pedido mudou e o quadro relê aquele pedido inteiro. Alerta = transição para `placed` (não o INSERT), com anel de destaque por 30 s e som sintetizado no WebAudio, com botão para desligar. **Aceite:** duas abas refletiram a mesma mudança em segundos, e o pedido novo apareceu nas duas.
+- ✅ **6.6** — Um template de WhatsApp por transição (matriz do §6.5). **Aceite:** três transições pelo painel = três linhas em `notification_logs`; duas chamadas simultâneas para o mesmo status foram recusadas como duplicata; chamada sem sessão de restaurante levou 403. O `order_confirmed` foi verificado na compra real: o webhook promoveu o pedido **e** registrou o envio.
+- ✅ **6.7** — `/:slug/pedido/:orderId` com a linha do tempo alimentada por `order_status_history` (hora real de cada etapa) e caminho conforme a modalidade. **Aceite:** mover o card no kanban levou a tela do cliente a "Em preparo", "Saiu para entrega" e "Concluído" sem recarregar. Que é o Realtime quem entrega (e não o poll de reserva) foi confirmado zerando todos os intervalos da página.
+
+**Dois problemas reais achados e corrigidos no caminho:**
+
+1. **A trilha de status não era gravável pelo painel.** `record_order_status_change` rodava com o papel de quem disparou o UPDATE e `order_status_history` só tem policy de leitura. Enquanto todo status vinha do service role (`create-order`, `stripe-webhook`) isso nunca apareceu — na 6.4, quem move o card é o restaurante autenticado, e **todo** update falhava. A trigger virou `SECURITY DEFINER` com `search_path` fixo, e continua sendo o único caminho de escrita no histórico (nenhuma policy de INSERT foi criada).
+2. **O kanban ficava com dado velho depois de uma queda do socket.** Com a aba aberta por mais de uma hora o Realtime caiu e o pedido que chegou nesse meio-tempo não apareceu; quando a conexão voltava, o indicador ficava verde sobre um quadro furado. Agora toda reconexão recarrega o quadro inteiro.
+
+**Coluna nova:** `orders.ready_at`, carimbada por trigger igual a `finished_at`. Sem ela o timer não tinha onde ler o instante em que o pedido ficou pronto. É também o que a Fase 8 vai usar para separar tempo de preparo de tempo de entrega.
+
 ---
 
 ## 2. Ações que dependem de você
@@ -100,8 +121,10 @@ Nada aqui atrapalha o desenvolvimento — é tudo cosmético.
 
 - [ ] **Usuários no Authentication**: `mmr-*`/`st-*` antigos, `mmr-auth-<timestamp>@gmail.com`, `mmr-ui-test@gmail.com` e `mmr-onboard-test@gmail.com` (senha de teste: `RangoTeste!123`). Inofensivos; remova no dashboard se quiser.
 - [ ] **Restaurante de teste "Pizzaria do Zé"** (slug `pizzaria-do-ze`, dono `mmr-onboard-test`): a Fase 3 já usou; agora pode apagar quando quiser (Table Editor → `restaurants`; o cascade limpa o resto). A **Cantina da Nona** (seed) segue útil para testar a vitrine com mais categorias/itens.
-- [ ] **Clientes de teste** (*Cliente Teste / Cliente Fase5 / Maria Teste / Cliente Stripe / Cliente Intruso*), endereços e linhas em `phone_verifications` criados nas validações.
-- [ ] **Pedidos de teste na Cantina da Nona**: #1, #2, #3 e #4 em `pending_payment`, #6 em `pending_payment` com `payment_status = failed`, e **#5 pago e em `placed`**. Sugiro **manter o #5** — é o insumo pronto para começar o kanban da Fase 6.
+- [ ] **Clientes de teste** (*Cliente Teste / Cliente Fase5 / Maria Teste / Cliente Stripe / Cliente Intruso* e, da Fase 6, *Ana Kanban / Bruno Delivery / Carla Realtime*), endereços e linhas em `phone_verifications` criados nas validações.
+- [ ] **Pedidos de teste na Cantina da Nona**: #1, #2, #3 e #4 em `pending_payment`, #6 em `pending_payment` com `payment_status = failed`, e **#5 pago e em `placed`**.
+- [ ] **Pedidos de teste na Pizzaria do Zé** (Fase 6): seis pedidos espalhados pelas colunas, incluindo o **#6 pago de verdade** em modo teste. Sugiro **manter todos** enquanto a Fase 8 (relatórios) não estiver pronta — é a única massa com `ready_at`/`finished_at` preenchidos e transições reais em `order_status_history`.
+- [ ] **Itens acrescentados à Pizzaria do Zé** (Calabresa, Quatro queijos, Refrigerante 2L) e a Margherita marcada como disponível — o cardápio dela tinha um item só, indisponível, e nenhum pedido podia ser criado. Vale manter.
 
 ### E. Stripe — ✅ concluído (29/07/2026)
 
@@ -144,6 +167,12 @@ Antes de produção (Fase 9), reavaliar a confirmação de e-mail para donos de 
 - **Pedido nasce em `pending_payment`.** O `create-order` grava antes de cobrar; só o webhook do Stripe promove para `placed`. O kanban da Fase 6 nunca vê um checkout abandonado — e, por consequência, **o kanban lista por `status`, não precisa filtrar por `payment_status`**.
 - **Criar o pedido e cobrar são passos separados** (`create-order` e `create-payment-session`). Desistir do pagamento e voltar gera uma nova sessão do Stripe para o mesmo pedido, sem duplicá-lo; pagamento recusado mantém o pedido em `pending_payment` com `payment_status = 'failed'`.
 - **Voltar do Stripe não prova pagamento.** A tela de retorno consulta o pedido e reconsulta por até 30 s; quem escreve `paid` é o webhook, nunca o front.
+- **Caminho do pedido depende da modalidade** (§5.3): retirada passa por `ready`, entrega passa por `out_for_delivery`. Vale no kanban, nos botões do detalhe e na linha do tempo do cliente — um pedido de entrega nunca fica "pronto para retirada".
+- **A trilha de status é escrita só pela trigger** (`record_order_status_change`, `SECURITY DEFINER`). `order_status_history` não tem policy de INSERT: ninguém forja auditoria escrevendo direto na tabela.
+- **`ready_at` e `finished_at` são carimbados pelo banco**, não pelo painel — o relógio da máquina do operador não decide o histórico do pedido.
+- **Uma mensagem por transição, garantida pelo banco.** Índice único parcial em `notification_logs (order_id, channel, template)` com `status = 'sent'`, e a linha é *reservada antes* do envio. Parcial de propósito: envio que falhou não ocupa a vaga e pode ser retentado.
+- **Notificação nunca derruba a operação.** Falha no WhatsApp não mostra erro ao operador (o pedido já mudou de status) nem faz o webhook devolver erro ao Stripe (o pedido já está pago).
+- **O quadro se ressincroniza ao reconectar.** Indicador verde só quando o Realtime está de fato assinando; toda volta ao ar recarrega o quadro, porque tudo que aconteceu offline passou despercebido.
 - **Preços e totais são sempre recalculados no servidor.** O carrinho manda só `itemId` e `quantity`; nome e preço do pedido são snapshots tirados do banco na hora da criação.
 - **Owner atribuído por trigger** (`assign_restaurant_owner`). O onboarding só cria o restaurante.
 - **Item indisponível fica visível e bloqueado na vitrine**; o que some para o cliente é categoria/restaurante inativo. A vitrine filtra `is_active` explicitamente porque, para um **membro logado** do restaurante, a RLS devolveria também o conteúdo inativo.
@@ -162,8 +191,12 @@ Antes de produção (Fase 9), reavaliar a confirmação de e-mail para donos de 
 - **`create-order` não tem chave de idempotência.** O botão do checkout fica desabilitado durante o envio, mas um retry de rede pode criar dois pedidos `pending_payment` para o mesmo carrinho. Nenhum deles seria cobrado duas vezes (cada um exige sua própria sessão de pagamento), então o efeito é lixo no banco, não prejuízo. Vale resolver quando houver volume — o padrão é o cliente mandar um `Idempotency-Key` e a function reaproveitar o pedido pendente equivalente.
 - **Sem limpeza de pedidos abandonados.** Pedido que fica em `pending_payment` para sempre não incomoda o kanban (ele lista por `status`), mas acumula. O evento `checkout.session.expired` já marca `failed`; falta uma rotina que cancele os antigos.
 - **Arquivos órfãos nos buckets** ao trocar logo/capa/imagens várias vezes — limpar quando houver rotina de manutenção (pós-MVP).
+- **A policy `orders_update_members` permite alterar qualquer coluna do pedido**, não só o status. Um funcionário poderia mudar o total pelo PostgREST. Ninguém no painel faz isso, e o valor cobrado já foi congelado no Stripe, então o risco hoje é de dado inconsistente, não de prejuízo. A correção natural entra junto com a 9.1 (papéis `manager` e `staff`): restringir a escrita às colunas de operação.
+- **Notificação de cancelamento não existe.** `cancelled` está fora da matriz do §6.5 de propósito: um aviso de cancelamento sem o motivo é pior do que nenhum. Entra quando o painel oferecer cancelar com justificativa.
+- **O link de avaliação ainda não vai na mensagem de "pedido finalizado"** — a página `/avaliar/:orderId` é placeholder até a 7.3. A matriz do §6.5 pede os dois juntos; hoje sai só o agradecimento.
 - ~~Página temporária `/status`~~ — removida na 3.1.
 - ~~Chunk > 500 kB no build~~ — resolvido com code-splitting por rota.
+- ~~Trigger de histórico bloqueada pela RLS~~ — corrigida na 6.4 (`SECURITY DEFINER`).
 
 ---
 
@@ -173,8 +206,10 @@ Antes de produção (Fase 9), reavaliar a confirmação de e-mail para donos de 
 
 - **`/cantina-da-nona`** — vitrine com o restaurante do seed: home com categorias, página de itens (o "Talharim ao funghi" demonstra o estado indisponível), carrinho persistente com observação.
 - **`/cantina-da-nona/checkout`** — checkout completo: alternar entre entrega e retirada mostra a taxa entrando e saindo do total; o CEP `90010-150` preenche Praça da Alfândega / Centro Histórico / Porto Alegre / RS. Com menos de R$ 30,00 no carrinho o botão fica bloqueado (pedido mínimo da Cantina). "Ir para o pagamento" leva ao Checkout do Stripe: `4242 4242 4242 4242` aprova e volta com o pedido confirmado; `4000 0000 0000 0002` recusa e o pedido fica disponível para nova tentativa.
-- **`/pizzaria-do-ze`** — segundo restaurante de teste (carrinho separado do da Cantina).
-- **`/admin`** — painel completo (`mmr-onboard-test@gmail.com` / `RangoTeste!123`, restaurante "Pizzaria do Zé").
+- **`/pizzaria-do-ze`** — segundo restaurante de teste, agora com quatro itens e **seis pedidos** espalhados pelo kanban (carrinho separado do da Cantina).
+- **`/admin/pedidos`** — kanban da Fase 6 (`mmr-onboard-test@gmail.com` / `RangoTeste!123`, restaurante "Pizzaria do Zé"). Arraste pela alça do card ou use os botões do detalhe. Para ver o semáforo mudar sem esperar, altere `estimated_ready_at` do pedido no Table Editor: mais de 10 min à frente = verde, menos = laranja, no passado = vermelho. Abra duas abas para ver o tempo real.
+- **`/pizzaria-do-ze/pedido/<id>`** — acompanhamento pelo cliente; mover o card no painel muda a linha do tempo sozinho.
+- **`/admin`** — painel completo (mesmas credenciais).
 - **`/`, `/slug-inexistente`** — landing placeholder e 404 amigável da vitrine.
 
 Detalhes no [README](../README.md#estado-atual-e-como-testar).
@@ -183,20 +218,23 @@ Detalhes no [README](../README.md#estado-atual-e-como-testar).
 
 ## 7. Ordem de retomada
 
-1. **Fase 6** (operação de pedidos: kanban, timer com semáforo, realtime, notificações por status, acompanhamento pelo cliente): **é o próximo passo e não depende de você**. O pedido #5 já está `placed` e pago no banco, com número, itens, endereço congelado e previsão — matéria-prima pronta para o kanban. Fechá-la completa o MVP.
-2. **Fase 4 (real)** — quando as credenciais da Meta chegarem, o provedor real entra sozinho e a 4.1 fecha (item F). A 6.6 (notificações por mudança de status) vai usar o mesmo `send-whatsapp`, então até lá ela roda no fake.
-3. **0.4** finaliza assim que a Vercel estiver conectada (independente; pode ser feita a qualquer momento).
+1. **Fase 7** (e-mails e avaliação: Resend, templates transacionais, avaliação do pedido): **é o próximo passo**. Depende de você para uma coisa só — a `RESEND_API_KEY` (item F). A 7.3 também fecha o link de avaliação que hoje falta na mensagem de "pedido finalizado".
+2. **Fase 8** (relatórios) não depende de credencial nenhuma e pode vir antes da 7 se preferir; `ready_at` e `finished_at` já estão sendo carimbados, então os tempos médios têm de onde sair.
+3. **Fase 4 (real)** — quando as credenciais da Meta chegarem, o provedor real entra sozinho e a 4.1 fecha (item F). Até lá, as mensagens da 6.6 rodam no fake e ficam registradas em `notification_logs`.
+4. **0.4** finaliza assim que a Vercel estiver conectada (independente; pode ser feita a qualquer momento).
 
 | Marco | Significado |
 |---|---|
 | ✅ Fim da Fase 2 | Restaurante monta o cardápio |
 | ✅ Fim da Fase 3 | Cliente navega e monta o carrinho |
 | ✅ Fim da Fase 5 | Cliente paga — caminho do cliente completo |
-| Fim da Fase 6 | MVP funcional (pedido pago e operado) |
+| ✅ **Fim da Fase 6** | **MVP funcional (pedido pago e operado)** |
 | Fim da Fase 9 | Pronto para produção |
 
 ---
 
 ## 8. Resumo de progresso
 
-**29 de 50 tarefas** entregues e validadas (Fases 0 a 3 e **Fase 5 inteira**, exceto a Vercel na 0.4; **4.2 e 4.3**). A **4.1** está implementada, deployada e validada no provedor fake, mas segue **aberta** até a entrega real via Meta. Próximo passo concreto: **Fase 6 — operação de pedidos**, que fecha o MVP e não depende de nenhuma credencial nova.
+**36 de 50 tarefas** entregues e validadas (Fases 0 a 3, **5 e 6 inteiras**, exceto a Vercel na 0.4; **4.2 e 4.3**). A **4.1** está implementada, deployada e validada no provedor fake, mas segue **aberta** até a entrega real via Meta.
+
+**O MVP está de pé:** pedido pago, operado no kanban e acompanhado pelo cliente. Próximo passo concreto: **Fase 7 — e-mails e avaliação**, que precisa da `RESEND_API_KEY`; ou **Fase 8 — relatórios**, se preferir seguir sem depender de credencial nova.

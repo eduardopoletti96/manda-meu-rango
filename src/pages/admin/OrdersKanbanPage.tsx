@@ -34,7 +34,11 @@ import { DraggableOrderCard } from '@/features/orders/DraggableOrderCard'
 import { OrderDetailDialog } from '@/features/orders/OrderDetailDialog'
 import { OrderStatusActions } from '@/features/orders/OrderStatusActions'
 import { useOrdersRealtime, type OrdersChange } from '@/features/orders/useOrdersRealtime'
-import { isChimeEnabled, playNewOrderChime, setChimeEnabled } from '@/features/orders/new-order-chime'
+import {
+  isChimeEnabled,
+  playNewOrderChime,
+  setChimeEnabled,
+} from '@/features/orders/new-order-chime'
 import type { KanbanOrder } from '@/features/orders/types'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -221,7 +225,9 @@ export function OrdersKanbanPage() {
 
   const replaceOrder = useCallback((id: string, patch: Partial<KanbanOrder>) => {
     setOrders((current) =>
-      current ? current.map((order) => (order.id === id ? { ...order, ...patch } : order)) : current,
+      current
+        ? current.map((order) => (order.id === id ? { ...order, ...patch } : order))
+        : current,
     )
   }, [])
 
