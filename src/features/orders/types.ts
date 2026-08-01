@@ -48,6 +48,7 @@ export type KanbanOrder = {
   address_snapshot: AddressSnapshot | null
   estimated_ready_at: string | null
   created_at: string
+  ready_at: string | null
   finished_at: string | null
   customer: OrderCustomer | null
   items: OrderItemLine[]

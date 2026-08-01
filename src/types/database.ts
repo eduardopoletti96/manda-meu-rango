@@ -369,6 +369,7 @@ export type Database = {
           order_number: number
           paid_at: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
+          ready_at: string | null
           restaurant_id: string
           status: Database["public"]["Enums"]["order_status"]
           stripe_payment_intent_id: string | null
@@ -390,6 +391,7 @@ export type Database = {
           order_number: number
           paid_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          ready_at?: string | null
           restaurant_id: string
           status?: Database["public"]["Enums"]["order_status"]
           stripe_payment_intent_id?: string | null
@@ -411,6 +413,7 @@ export type Database = {
           order_number?: number
           paid_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          ready_at?: string | null
           restaurant_id?: string
           status?: Database["public"]["Enums"]["order_status"]
           stripe_payment_intent_id?: string | null

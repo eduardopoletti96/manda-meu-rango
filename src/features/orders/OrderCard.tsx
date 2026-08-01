@@ -1,6 +1,7 @@
 import { Bike, ShoppingBag } from 'lucide-react'
 import { formatBRL, formatTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { OrderTimerBadge } from './OrderTimerBadge'
 import { formatSnapshot, type KanbanOrder } from './types'
 
 const MAX_VISIBLE_ITEMS = 3
@@ -33,14 +34,12 @@ export function FulfillmentBadge({ order }: { order: KanbanOrder }) {
 export function OrderCard({
   order,
   onOpen,
-  timer,
   handle,
   isDragging,
   highlighted,
 }: {
   order: KanbanOrder
   onOpen: () => void
-  timer?: React.ReactNode
   handle?: React.ReactNode
   isDragging?: boolean
   highlighted?: boolean
@@ -80,7 +79,7 @@ export function OrderCard({
 
       <div className="flex items-center gap-2">
         <FulfillmentBadge order={order} />
-        {timer}
+        <OrderTimerBadge order={order} />
       </div>
 
       <p className="text-muted-foreground line-clamp-2 text-xs" title={destination}>

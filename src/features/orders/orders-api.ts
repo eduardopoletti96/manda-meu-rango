@@ -11,7 +11,7 @@ import type { KanbanOrder } from './types'
 const ORDER_SELECT = `
   id, order_number, status, fulfillment_type, payment_status, notes,
   subtotal, delivery_fee, total, address_snapshot,
-  estimated_ready_at, created_at, finished_at,
+  estimated_ready_at, created_at, ready_at, finished_at,
   customer:customers(id, name, phone),
   items:order_items(id, item_name, unit_price, quantity, line_total)
 `
