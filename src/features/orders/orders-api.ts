@@ -89,3 +89,21 @@ export async function updateOrderStatus(
   }
   return { ok: true, data: null }
 }
+
+/**
+ * 6.6 — Pede o aviso de WhatsApp da transição que acabou de acontecer.
+ *
+ * Deliberadamente sem `await` de quem chama e sem mensagem de erro na tela: o
+ * pedido já mudou de status, e um WhatsApp que não saiu não é motivo para
+ * dizer ao operador que a operação falhou. A function decide o template pelo
+ * status que está no banco e recusa o envio repetido sozinha, então chamar
+ * duas vezes não gera duas mensagens.
+ */
+export async function requestStatusNotification(orderId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('notify-order-status', {
+    body: { orderId },
+  })
+  if (error) {
+    console.error('[orders-api] falha ao pedir o aviso ao cliente:', error)
+  }
+}

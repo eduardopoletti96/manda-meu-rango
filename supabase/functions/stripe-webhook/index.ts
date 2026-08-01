@@ -10,6 +10,7 @@
 
 import { createAdminClient } from '../_shared/supabase-admin.ts'
 import { createStripeClient, cryptoProvider, Stripe } from '../_shared/stripe.ts'
+import { notifyOrderStatus } from '../_shared/order-notifications.ts'
 
 // Sem CORS: não é o navegador que chama.
 function respond(body: unknown, status = 200): Response {
@@ -59,6 +60,18 @@ async function markPaid(
     return
   }
   console.log(`[stripe-webhook] pedido #${data[0].order_number} confirmado como pago`)
+
+  // 6.6 — "Pedido confirmado" é a primeira linha da matriz de notificações
+  // (§6.5), e a transição que a dispara é esta: quem confirma pagamento é o
+  // webhook, então é daqui que o aviso sai. Uma falha no WhatsApp não pode
+  // derrubar o processamento do evento — o pedido está pago de qualquer jeito,
+  // e devolver erro faria o Stripe reenviar um evento já aplicado.
+  try {
+    const notified = await notifyOrderStatus(admin, orderId)
+    console.log(`[stripe-webhook] aviso ao cliente: ${JSON.stringify(notified)}`)
+  } catch (error) {
+    console.error('[stripe-webhook] falha ao avisar o cliente:', (error as Error).message)
+  }
 }
 
 async function markFailed(admin: Admin, orderId: string): Promise<void> {

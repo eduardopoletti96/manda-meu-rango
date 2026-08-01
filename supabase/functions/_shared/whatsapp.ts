@@ -6,7 +6,14 @@
 // ponta a ponta. Quando WHATSAPP_API_TOKEN e WHATSAPP_PHONE_NUMBER_ID forem
 // definidos via `supabase secrets set`, o provedor real da Meta entra sozinho.
 
-export type WhatsAppTemplate = 'verification_code'
+export type WhatsAppTemplate =
+  | 'verification_code'
+  // 6.6 — um template por transição de status (documento base §6.5)
+  | 'order_confirmed'
+  | 'order_in_production'
+  | 'order_ready'
+  | 'order_out_for_delivery'
+  | 'order_finished'
 
 export type WhatsAppMessage = {
   /** Destino em E.164, ex.: +5551999999999 */
@@ -30,21 +37,47 @@ const META_API_VERSION = 'v21.0'
 function metaTemplateName(template: WhatsAppTemplate): string {
   const overrides: Record<WhatsAppTemplate, string | undefined> = {
     verification_code: Deno.env.get('WHATSAPP_TEMPLATE_VERIFICATION'),
+    order_confirmed: Deno.env.get('WHATSAPP_TEMPLATE_ORDER_CONFIRMED'),
+    order_in_production: Deno.env.get('WHATSAPP_TEMPLATE_ORDER_IN_PRODUCTION'),
+    order_ready: Deno.env.get('WHATSAPP_TEMPLATE_ORDER_READY'),
+    order_out_for_delivery: Deno.env.get('WHATSAPP_TEMPLATE_ORDER_OUT_FOR_DELIVERY'),
+    order_finished: Deno.env.get('WHATSAPP_TEMPLATE_ORDER_FINISHED'),
   }
   const defaults: Record<WhatsAppTemplate, string> = {
     verification_code: 'verification_code',
+    order_confirmed: 'order_confirmed',
+    order_in_production: 'order_in_production',
+    order_ready: 'order_ready',
+    order_out_for_delivery: 'order_out_for_delivery',
+    order_finished: 'order_finished',
   }
   return overrides[template] ?? defaults[template]
 }
 
 /** Texto legível da mensagem; usado pelo provedor fake e no log de depuração. */
 export function renderMessageText(message: WhatsAppMessage): string {
+  const { customer, order, restaurant, eta, trackUrl } = message.params
+
   switch (message.template) {
     case 'verification_code':
       return (
         `Seu código de verificação Manda meu Rango é ${message.params.code}. ` +
         'Ele expira em 5 minutos. Não compartilhe com ninguém.'
       )
+    case 'order_confirmed':
+      return (
+        `${customer}, seu pagamento foi confirmado! O pedido #${order} da ${restaurant} ` +
+        `já está com a cozinha${eta ? ` e a previsão é ficar pronto às ${eta}` : ''}. ` +
+        `Acompanhe por aqui: ${trackUrl}`
+      )
+    case 'order_in_production':
+      return `${customer}, o pedido #${order} da ${restaurant} entrou em preparo agora. 👩‍🍳`
+    case 'order_ready':
+      return `${customer}, o pedido #${order} está pronto para retirada na ${restaurant}. 🛍️`
+    case 'order_out_for_delivery':
+      return `${customer}, o pedido #${order} da ${restaurant} saiu para entrega. 🛵`
+    case 'order_finished':
+      return `${customer}, o pedido #${order} da ${restaurant} foi concluído. Obrigado! 🧡`
   }
 }
 

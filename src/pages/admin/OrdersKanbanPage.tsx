@@ -14,7 +14,12 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { useRestaurant } from '@/features/restaurant/restaurant-context'
-import { fetchKanbanOrders, fetchOrderById, updateOrderStatus } from '@/features/orders/orders-api'
+import {
+  fetchKanbanOrders,
+  fetchOrderById,
+  requestStatusNotification,
+  updateOrderStatus,
+} from '@/features/orders/orders-api'
 import {
   KANBAN_COLUMNS,
   canMoveTo,
@@ -220,6 +225,10 @@ export function OrdersKanbanPage() {
         setMoveError(result.error)
         return
       }
+
+      // 6.6 — o cliente é avisado da transição. Sem await: o card já mudou de
+      // coluna e o operador não espera o WhatsApp para seguir trabalhando.
+      void requestStatusNotification(order.id)
 
       // Relê o pedido: ready_at e finished_at são carimbados pela trigger, e
       // sem eles o timer continuaria correndo num pedido que já parou.
