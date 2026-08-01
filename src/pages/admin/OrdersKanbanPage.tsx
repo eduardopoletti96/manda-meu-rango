@@ -181,6 +181,35 @@ export function OrdersKanbanPage() {
 
   const realtimeState = useOrdersRealtime(restaurantId, handleRealtimeChange)
 
+  /**
+   * Ressincroniza o quadro quando a conexão volta.
+   *
+   * Enquanto o socket esteve fora — aba dormindo, rede oscilando, token
+   * expirado —, tudo que aconteceu passou despercebido. Sem isto, o indicador
+   * voltaria a verde sobre um quadro que perdeu pedidos, que é pior do que
+   * ficar vermelho: dá confiança em dado velho.
+   */
+  const reconnected = useRef(false)
+  useEffect(() => {
+    if (realtimeState !== 'live' || !restaurantId) {
+      return
+    }
+    if (!reconnected.current) {
+      // Primeira conexão: a carga inicial já cuidou disso.
+      reconnected.current = true
+      return
+    }
+    let cancelled = false
+    void fetchKanbanOrders(restaurantId).then((result) => {
+      if (!cancelled) {
+        apply(result)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [realtimeState, restaurantId, apply])
+
   // O destaque some sozinho: ele marca "chegou agora", não "não foi visto".
   useEffect(() => {
     if (arrivedIds.length === 0) {

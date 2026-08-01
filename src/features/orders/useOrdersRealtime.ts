@@ -7,7 +7,12 @@ export type OrdersChange = {
   event: 'INSERT' | 'UPDATE' | 'DELETE'
 }
 
-export type RealtimeState = 'connecting' | 'live' | 'off'
+/**
+ * 'live' é o único estado em que o quadro pode confiar no que está na tela.
+ * Todo o resto — conectando, erro de canal, socket derrubado — é a mesma coisa
+ * do ponto de vista de quem opera: o quadro pode estar desatualizado.
+ */
+export type RealtimeState = 'connecting' | 'live'
 
 /**
  * 6.5 — Assina as mudanças de `orders` do restaurante.
@@ -56,7 +61,7 @@ export function useOrdersRealtime(
         },
       )
       .subscribe((status) => {
-        setState(status === 'SUBSCRIBED' ? 'live' : status === 'CLOSED' ? 'connecting' : 'off')
+        setState(status === 'SUBSCRIBED' ? 'live' : 'connecting')
       })
 
     return () => {
